@@ -30,6 +30,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.UUID;
 
 /** Minimal local HTTP hub. The master tablet owns the state; clients only read
  * the snapshot or submit actions. No Internet service or third-party SDK is used. */
@@ -40,6 +41,7 @@ public class LanSyncPlugin extends Plugin {
     private volatile ServerSocket serverSocket;
     private volatile String state = "{}";
     private volatile int revision = 0;
+    private volatile String sessionToken;
     private final List<String> actions = Collections.synchronizedList(new ArrayList<>());
 
     @PluginMethod
@@ -52,6 +54,7 @@ public class LanSyncPlugin extends Plugin {
                     return;
                 }
                 serverSocket = new ServerSocket(port);
+                sessionToken = UUID.randomUUID().toString().replace("-", "");
                 executor.execute(() -> acceptLoop());
                 resolveInfo(call, serverSocket.getLocalPort());
             } catch (Exception error) {
@@ -65,13 +68,16 @@ public class LanSyncPlugin extends Plugin {
         String address = localAddress();
         result.put("address", address);
         result.put("port", port);
-        result.put("joinUrl", "http://" + address + ":" + port);
+        result.put("joinUrl", "http://" + address + ":" + port + "?token=" + sessionToken);
         call.resolve(result);
     }
 
     @PluginMethod
     public void stop(PluginCall call) {
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) { }
+        sessionToken = null;
+        actions.clear();
+        revision = 0;
         call.resolve();
     }
 
@@ -110,11 +116,11 @@ public class LanSyncPlugin extends Plugin {
 
     @PluginMethod
     public void sendAction(PluginCall call) {
-        String baseUrl = call.getString("url", "").replaceAll("/$", "");
+        String targetUrl = call.getString("url", "");
         String action = call.getString("action", "{}");
         executor.execute(() -> {
             try {
-                post(baseUrl + "/action", action);
+                post(targetUrl, action);
                 call.resolve();
             } catch (Exception error) { call.reject("Action locale refusée", error); }
         });
@@ -139,15 +145,29 @@ public class LanSyncPlugin extends Plugin {
             while (read < contentLength) { int count = reader.read(chars, read, contentLength - read); if (count < 0) break; read += count; }
             String body = new String(chars, 0, read);
             String[] parts = request.split(" "); String method = parts[0]; String path = parts.length > 1 ? parts[1] : "/";
-            String response;
+            String response; int status = 200;
             if ("OPTIONS".equals(method)) response = "";
-            else if ("GET".equals(method) && path.startsWith("/state")) response = state;
-            else if ("POST".equals(method) && path.startsWith("/action")) { actions.add(body); response = "{\"ok\":true}"; }
-            else response = "{\"error\":\"not-found\"}";
+            else if (!authorized(path)) { status = 401; response = "{\"error\":\"session-token-required\"}"; }
+            else if ("GET".equals(method) && route(path).equals("/state")) response = state;
+            else if ("POST".equals(method) && route(path).equals("/action")) { actions.add(body); response = "{\"ok\":true}"; }
+            else { status = 404; response = "{\"error\":\"not-found\"}"; }
             byte[] data = response.getBytes(StandardCharsets.UTF_8);
-            String headers = "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET,POST,OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: " + data.length + "\r\nConnection: close\r\n\r\n";
+            String statusText = status == 200 ? "OK" : status == 401 ? "Unauthorized" : "Not Found";
+            String headers = "HTTP/1.1 " + status + " " + statusText + "\r\nContent-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET,POST,OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: " + data.length + "\r\nConnection: close\r\n\r\n";
             output.write(headers.getBytes(StandardCharsets.UTF_8)); output.write(data); output.flush();
         } catch (Exception ignored) { }
+    }
+
+    private String route(String path) { int query = path.indexOf('?'); return query >= 0 ? path.substring(0, query) : path; }
+
+    private boolean authorized(String path) {
+        if (sessionToken == null) return false;
+        String marker = "token=";
+        int start = path.indexOf(marker);
+        if (start < 0) return false;
+        int end = path.indexOf('&', start);
+        String token = end >= 0 ? path.substring(start + marker.length(), end) : path.substring(start + marker.length());
+        return sessionToken.equals(token);
     }
 
     private void post(String target, String body) throws Exception {

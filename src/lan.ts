@@ -21,6 +21,12 @@ const native = () => window.Capacitor?.Plugins?.LanSync;
 
 export function hasNativeLanHost() { return Boolean(native()); }
 
+export function lanEndpoint(baseUrl: string, path: "/state" | "/action") {
+  const url = new URL(baseUrl, window.location.href);
+  url.pathname = `${url.pathname.replace(/\/$/, "")}${path}`;
+  return url.toString();
+}
+
 export async function startLanHost(port = 8765): Promise<LanInfo> {
   const plugin = native();
   if (!plugin) throw new Error("Le serveur local Android n'est pas encore chargé");
@@ -46,13 +52,14 @@ export async function readLanActions(after: number) {
 
 export async function sendLanAction(url: string, action: LanAction) {
   const body = JSON.stringify(action);
-  if (native()) return native()!.sendAction({ url: url.replace(/\/$/, ""), action: body });
-  const response = await fetch(`${url.replace(/\/$/, "")}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  const endpoint = lanEndpoint(url, "/action");
+  if (native()) return native()!.sendAction({ url: endpoint, action: body });
+  const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body });
   if (!response.ok) throw new Error(`Serveur local indisponible (${response.status})`);
 }
 
 export async function fetchLanState(url: string): Promise<TournamentStore> {
-  const response = await fetch(`${url.replace(/\/$/, "")}/state`, { cache: "no-store" });
+  const response = await fetch(lanEndpoint(url, "/state"), { cache: "no-store" });
   if (!response.ok) throw new Error(`Connexion locale impossible (${response.status})`);
   return response.json() as Promise<TournamentStore>;
 }

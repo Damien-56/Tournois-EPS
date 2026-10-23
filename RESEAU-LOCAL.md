@@ -12,7 +12,7 @@ Le réseau local est optionnel. En mode autonome, aucune connexion n’est ouver
                                    └── file d’actions
 ```
 
-La tablette maître reste la seule autorité : elle déduplique les matchs par identifiant et réémet l’état après chaque action. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
+La tablette maître reste la seule autorité : elle déduplique les matchs par identifiant et réémet l’état après chaque action. Le QR contient un jeton aléatoire de séance ; les requêtes sans ce jeton sont refusées. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
 
 ## Utilisation prévue
 
@@ -24,8 +24,8 @@ La tablette maître reste la seule autorité : elle déduplique les matchs par i
 
 ## Limites actuelles
 
-- la découverte automatique du maître (mDNS/NSD) reste à ajouter ;
-- le QR code est affiché par la tablette maître ; la découverte automatique mDNS/NSD reste à ajouter ;
+- le QR code est affiché par la tablette maître ; la découverte automatique du maître (mDNS/NSD) reste à ajouter ;
+- le jeton protège la séance pendant son fonctionnement, mais il faut régénérer la séance pour révoquer les anciennes tablettes ;
 - le serveur local est intégré à l’enveloppe Android Capacitor ; en navigateur/PWA, le mode autonome reste disponible ;
 - le serveur ne doit pas être exposé au-delà du réseau de séance.
 

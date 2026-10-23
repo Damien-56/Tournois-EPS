@@ -11,12 +11,18 @@ Reconstruction indépendante de l’application « Tournoi EPS et ATP », pensé
 ## Fonctionnalités du MVP
 
 - classes et listes d’élèves, import par copier-coller ;
+- profils élèves paramétrables : niveau, genre et statistiques individuelles ;
 - appel du jour : présent, absent, non-pratiquant ;
 - modes ATP, classique toutes rondes et poules par terrain ;
+- activités Badminton, Tennis de table ou activité libre ;
 - saisie des résultats, arbitre facultatif, points et classement en direct ;
+- score cible normal/flash configurable ;
+- bilan pédagogique, taux de victoire et badges calculés ;
+- annulation du dernier match avec recalcul complet des statistiques ;
 - historique de séance, planning des matchs, impression/PDF via le navigateur ;
 - export/import JSON versionné ;
 - synchronisation maître/client sur Wi‑Fi local ;
+- file d’attente des actions clientes pendant une coupure Wi‑Fi ;
 - aucune publicité, facturation, abonnement, Firebase ou analytics commerciaux.
 
 ## Développement

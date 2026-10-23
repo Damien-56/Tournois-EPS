@@ -21,14 +21,17 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Fonction | État |
 |---|---|
 | Mode autonome sur tablette/ordinateur | OK |
-| Classes et élèves | OK |
+| Classes et élèves | OK — profils enrichis avec niveau, genre et statistiques |
 | Appel présent/absent/non-pratiquant | OK |
 | ATP, Classique, Poules | OK MVP |
-| Matchs, scores, arbitre, points | OK MVP |
+| Matchs, scores, arbitre, points | OK — annulation avec recalcul des compteurs |
 | Classement et historique | OK |
+| Score cible normal/flash configurable | OK |
+| Statistiques, taux de victoire et badges | OK — calcul local à partir de l’historique |
 | Export/import JSON | OK |
 | Impression/PDF navigateur | OK via impression système |
 | Maître/client Wi‑Fi local | OK socle Android + polling |
+| Reprise des actions clientes après coupure Wi‑Fi | OK — file locale et déduplication côté maître |
 | QR code de connexion | OK MVP — affiché par la tablette maître |
 | Jeton de séance réseau local | OK — accès `/state` et `/action` protégé |
 | Mode élève sécurisé par PIN | OK MVP — réglages masqués et sortie protégée |

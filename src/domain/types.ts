@@ -1,5 +1,6 @@
 export type TournamentMode = "atp" | "classic" | "poule";
 export type StudentStatus = "present" | "absent" | "non-pratiquant";
+export type Sport = "badminton" | "tennis-table" | "autre";
 
 export interface Student {
   id: string;
@@ -12,6 +13,7 @@ export interface Student {
   wins: number;
   losses: number;
   refereed: number;
+  notes?: string;
 }
 
 export interface SchoolClass {
@@ -39,6 +41,7 @@ export interface Tournament {
   id: string;
   classId: string;
   name: string;
+  sport?: Sport;
   mode: TournamentMode;
   createdAt: string;
   pointsWin: number;
@@ -47,6 +50,7 @@ export interface Tournament {
   courtCount: number;
   groupSize: number;
   matchFormat: "normal" | "flash";
+  targetScore?: number;
   matches: Match[];
 }
 

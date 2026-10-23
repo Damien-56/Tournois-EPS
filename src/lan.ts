@@ -3,7 +3,7 @@ import type { TournamentStore } from "./domain/types";
 export type LanRole = "standalone" | "master" | "client";
 export interface LanInfo { address: string; port: number; joinUrl: string; }
 export interface LanPeer { name: string; address: string; port: number; joinUrl: string; }
-export interface LanAction { id: string; type: "record-match"; payload: Record<string, unknown>; }
+export interface LanAction { id: string; type: "record-match" | "delete-match"; payload: Record<string, unknown>; }
 
 interface NativeLanPlugin {
   start(options: { port: number }): Promise<LanInfo>;
@@ -69,4 +69,40 @@ export async function fetchLanState(url: string): Promise<TournamentStore> {
   const response = await fetch(lanEndpoint(url, "/state"), { cache: "no-store" });
   if (!response.ok) throw new Error(`Connexion locale impossible (${response.status})`);
   return response.json() as Promise<TournamentStore>;
+}
+
+const QUEUE_PREFIX = "tournois-eps.lan-actions.v1.";
+
+function queueKey(url: string) {
+  return `${QUEUE_PREFIX}${url}`;
+}
+
+/** Keeps client actions recoverable when Wi-Fi briefly disappears. Retries are safe because the master deduplicates ids. */
+export function queueLanAction(url: string, action: LanAction) {
+  const key = queueKey(url);
+  const queued = readQueuedLanActions(url);
+  if (!queued.some((item) => item.id === action.id)) {
+    localStorage.setItem(key, JSON.stringify([...queued, action]));
+  }
+}
+
+export function readQueuedLanActions(url: string): LanAction[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(queueKey(url)) || "[]") as LanAction[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function flushQueuedLanActions(url: string): Promise<number> {
+  const queued = readQueuedLanActions(url);
+  const remaining: LanAction[] = [];
+  for (const action of queued) {
+    try { await sendLanAction(url, action); } catch { remaining.push(action); }
+  }
+  const key = queueKey(url);
+  if (remaining.length) localStorage.setItem(key, JSON.stringify(remaining));
+  else localStorage.removeItem(key);
+  return queued.length - remaining.length;
 }

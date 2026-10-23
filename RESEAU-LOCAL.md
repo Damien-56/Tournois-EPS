@@ -19,13 +19,13 @@ La tablette maître reste la seule autorité : elle déduplique les matchs par i
 1. Connecter toutes les tablettes au même point d’accès Wi‑Fi, sans exiger Internet.
 2. Ouvrir Tournois EPS sur la tablette enseignant.
 3. Choisir « Démarrer comme maître ».
-4. Saisir l’adresse affichée sur les tablettes élèves, ou la transformer en QR code dans l’interface finale.
+4. Scanner le QR code affiché par la tablette maître, ou saisir son adresse locale.
 5. Les clientes rejoignent la séance et saisissent les résultats ; le maître valide l’état partagé.
 
 ## Limites actuelles
 
 - la découverte automatique du maître (mDNS/NSD) reste à ajouter ;
-- l’interface affiche actuellement l’adresse locale ; le QR code sera ajouté dans l’itération suivante ;
+- le QR code est affiché par la tablette maître ; la découverte automatique mDNS/NSD reste à ajouter ;
 - le serveur local est intégré à l’enveloppe Android Capacitor ; en navigateur/PWA, le mode autonome reste disponible ;
 - le serveur ne doit pas être exposé au-delà du réseau de séance.
 

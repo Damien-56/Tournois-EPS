@@ -19,6 +19,7 @@ export interface SchoolClass {
   name: string;
   students: Student[];
   createdAt: string;
+  exitPin?: string;
 }
 
 export interface Match {

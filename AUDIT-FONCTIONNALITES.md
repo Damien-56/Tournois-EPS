@@ -29,7 +29,8 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Export/import JSON | OK |
 | Impression/PDF navigateur | OK via impression système |
 | Maître/client Wi‑Fi local | OK socle Android + polling |
-| QR code de connexion | À finaliser |
+| QR code de connexion | OK MVP — affiché par la tablette maître |
+| Mode élève sécurisé par PIN | OK MVP — réglages masqués et sortie protégée |
 | Découverte automatique mDNS/NSD | À finaliser |
 | Synchronisation sans conflit de toutes les opérations | À renforcer par journal d’actions signé |
 | Multi-langue | À ajouter dans l’interface personnelle |

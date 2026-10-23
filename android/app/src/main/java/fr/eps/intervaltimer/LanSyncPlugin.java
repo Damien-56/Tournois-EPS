@@ -5,6 +5,7 @@ import android.os.Looper;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.net.wifi.WifiManager;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -49,6 +50,7 @@ public class LanSyncPlugin extends Plugin {
     private volatile String sessionToken;
     private volatile NsdManager nsdManager;
     private volatile NsdManager.RegistrationListener registrationListener;
+    private volatile WifiManager.MulticastLock multicastLock;
     private final List<String> actions = Collections.synchronizedList(new ArrayList<>());
     private final Set<String> actionIds = Collections.synchronizedSet(new HashSet<>());
 
@@ -63,6 +65,7 @@ public class LanSyncPlugin extends Plugin {
                 }
                 serverSocket = new ServerSocket(port);
                 sessionToken = UUID.randomUUID().toString().replace("-", "");
+                acquireMulticastLock();
                 registerMdns(serverSocket.getLocalPort());
                 executor.execute(() -> acceptLoop());
                 resolveInfo(call, serverSocket.getLocalPort());
@@ -85,6 +88,7 @@ public class LanSyncPlugin extends Plugin {
     public void stop(PluginCall call) {
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) { }
         unregisterMdns();
+        releaseMulticastLock();
         sessionToken = null;
         actions.clear();
         actionIds.clear();
@@ -96,6 +100,7 @@ public class LanSyncPlugin extends Plugin {
     public void discover(PluginCall call) {
         NsdManager manager = getNsdManager();
         if (manager == null) { call.reject("La découverte réseau local est indisponible"); return; }
+        acquireMulticastLock();
         List<String[]> peers = Collections.synchronizedList(new ArrayList<>());
         final NsdManager.DiscoveryListener[] holder = new NsdManager.DiscoveryListener[1];
         NsdManager.DiscoveryListener listener = new NsdManager.DiscoveryListener() {
@@ -121,9 +126,10 @@ public class LanSyncPlugin extends Plugin {
         };
         holder[0] = listener;
         try { manager.discoverServices("_tournois-eps._tcp.", NsdManager.PROTOCOL_DNS_SD, listener); }
-        catch (Exception error) { call.reject("Impossible de rechercher la tablette maître", error); return; }
+        catch (Exception error) { releaseMulticastLock(); call.reject("Impossible de rechercher la tablette maître", error); return; }
         mainHandler.postDelayed(() -> {
             try { manager.stopServiceDiscovery(holder[0]); } catch (Exception ignored) { }
+            if (serverSocket == null || serverSocket.isClosed()) releaseMulticastLock();
             JSArray result = new JSArray();
             synchronized (peers) {
                 for (String[] peer : peers) {
@@ -246,6 +252,19 @@ public class LanSyncPlugin extends Plugin {
     private NsdManager getNsdManager() {
         if (nsdManager == null) nsdManager = (NsdManager) getContext().getSystemService(Context.NSD_SERVICE);
         return nsdManager;
+    }
+
+    private void acquireMulticastLock() {
+        try {
+            WifiManager wifi = (WifiManager) getContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifi == null) return;
+            if (multicastLock == null) { multicastLock = wifi.createMulticastLock("tournois-eps-mdns"); multicastLock.setReferenceCounted(false); }
+            if (!multicastLock.isHeld()) multicastLock.acquire();
+        } catch (Exception ignored) { }
+    }
+
+    private void releaseMulticastLock() {
+        try { if (multicastLock != null && multicastLock.isHeld()) multicastLock.release(); } catch (Exception ignored) { }
     }
 
     private void registerMdns(int port) {

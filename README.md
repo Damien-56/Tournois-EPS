@@ -30,6 +30,8 @@ npm run mobile:sync
 
 La compilation Android nécessite un environnement Gradle/Android SDK installé. L’APK est ensuite produit dans `android/app/build/outputs/apk/debug/`.
 
+Le wrapper Gradle est inclus dans le dépôt afin de permettre une compilation reproductible avec `android\gradlew.bat assembleDebug`.
+
 ## Licence de reconstruction
 
 Le projet est une réimplémentation indépendante destinée à l’usage EPS de l’équipe. Les éléments d’interface, données et services propriétaires de l’application originale ne sont pas embarqués.

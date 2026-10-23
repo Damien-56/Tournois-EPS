@@ -48,5 +48,6 @@ Les SDK publicitaires, identifiants publicitaires, achats, abonnements, RevenueC
 
 - `npm run build` : réussi ;
 - `npm run mobile:sync` : réussi ;
-- compilation Gradle Android : non vérifiable dans cet environnement car le projet ne contient pas `gradle-wrapper.jar` et aucun exécutable Gradle n’est installé ;
+- compilation Gradle Android : réussie avec `assembleDebug` ;
+- APK debug généré dans `android/app/build/outputs/apk/debug/app-debug.apk` ;
 - test sur plusieurs appareils physiques : à réaliser sur le même point d’accès Wi‑Fi.

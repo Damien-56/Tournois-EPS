@@ -32,7 +32,7 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | QR code de connexion | OK MVP — affiché par la tablette maître |
 | Jeton de séance réseau local | OK — accès `/state` et `/action` protégé |
 | Mode élève sécurisé par PIN | OK MVP — réglages masqués et sortie protégée |
-| Découverte automatique mDNS/NSD | À finaliser |
+| Découverte automatique mDNS/NSD | OK MVP Android |
 | Journal d’actions réseau dédoublonné | OK MVP — identifiant d’action obligatoire côté maître |
 | Signature cryptographique du journal | À envisager pour un déploiement multi-établissements |
 | Multi-langue | Hors périmètre — interface française conservée |

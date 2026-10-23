@@ -2,6 +2,9 @@ package fr.eps.tournois;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.content.Context;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -44,6 +47,8 @@ public class LanSyncPlugin extends Plugin {
     private volatile String state = "{}";
     private volatile int revision = 0;
     private volatile String sessionToken;
+    private volatile NsdManager nsdManager;
+    private volatile NsdManager.RegistrationListener registrationListener;
     private final List<String> actions = Collections.synchronizedList(new ArrayList<>());
     private final Set<String> actionIds = Collections.synchronizedSet(new HashSet<>());
 
@@ -58,6 +63,7 @@ public class LanSyncPlugin extends Plugin {
                 }
                 serverSocket = new ServerSocket(port);
                 sessionToken = UUID.randomUUID().toString().replace("-", "");
+                registerMdns(serverSocket.getLocalPort());
                 executor.execute(() -> acceptLoop());
                 resolveInfo(call, serverSocket.getLocalPort());
             } catch (Exception error) {
@@ -78,11 +84,56 @@ public class LanSyncPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) { }
+        unregisterMdns();
         sessionToken = null;
         actions.clear();
         actionIds.clear();
         revision = 0;
         call.resolve();
+    }
+
+    @PluginMethod
+    public void discover(PluginCall call) {
+        NsdManager manager = getNsdManager();
+        if (manager == null) { call.reject("La découverte réseau local est indisponible"); return; }
+        List<String[]> peers = Collections.synchronizedList(new ArrayList<>());
+        final NsdManager.DiscoveryListener[] holder = new NsdManager.DiscoveryListener[1];
+        NsdManager.DiscoveryListener listener = new NsdManager.DiscoveryListener() {
+            public void onDiscoveryStarted(String serviceType) { }
+            public void onDiscoveryStopped(String serviceType) { }
+            public void onStartDiscoveryFailed(String serviceType, int errorCode) { }
+            public void onStopDiscoveryFailed(String serviceType, int errorCode) { }
+            public void onServiceLost(NsdServiceInfo serviceInfo) { }
+            public void onServiceFound(NsdServiceInfo serviceInfo) {
+                if (!"_tournois-eps._tcp.".equals(serviceInfo.getServiceType())) return;
+                try {
+                    manager.resolveService(serviceInfo, new NsdManager.ResolveListener() {
+                        public void onResolveFailed(NsdServiceInfo info, int errorCode) { }
+                        public void onServiceResolved(NsdServiceInfo info) {
+                            String host = info.getHost() == null ? "" : info.getHost().getHostAddress();
+                            byte[] tokenBytes = info.getAttributes().get("token");
+                            String token = tokenBytes == null ? "" : new String(tokenBytes, StandardCharsets.UTF_8);
+                            if (!host.isEmpty() && !token.isEmpty()) peers.add(new String[] { info.getServiceName(), host, String.valueOf(info.getPort()), token });
+                        }
+                    });
+                } catch (Exception ignored) { }
+            }
+        };
+        holder[0] = listener;
+        try { manager.discoverServices("_tournois-eps._tcp.", NsdManager.PROTOCOL_DNS_SD, listener); }
+        catch (Exception error) { call.reject("Impossible de rechercher la tablette maître", error); return; }
+        mainHandler.postDelayed(() -> {
+            try { manager.stopServiceDiscovery(holder[0]); } catch (Exception ignored) { }
+            JSArray result = new JSArray();
+            synchronized (peers) {
+                for (String[] peer : peers) {
+                    JSObject item = new JSObject();
+                    item.put("name", peer[0]); item.put("address", peer[1]); item.put("port", Integer.parseInt(peer[2]));
+                    item.put("joinUrl", "http://" + peer[1] + ":" + peer[2] + "?token=" + peer[3]); result.put(item);
+                }
+            }
+            JSObject response = new JSObject(); response.put("peers", result); call.resolve(response);
+        }, 2200);
     }
 
     @PluginMethod
@@ -190,6 +241,31 @@ public class LanSyncPlugin extends Plugin {
         try (OutputStream output = connection.getOutputStream()) { output.write(body.getBytes(StandardCharsets.UTF_8)); }
         if (connection.getResponseCode() >= 400) throw new IllegalStateException("HTTP " + connection.getResponseCode());
         connection.disconnect();
+    }
+
+    private NsdManager getNsdManager() {
+        if (nsdManager == null) nsdManager = (NsdManager) getContext().getSystemService(Context.NSD_SERVICE);
+        return nsdManager;
+    }
+
+    private void registerMdns(int port) {
+        NsdManager manager = getNsdManager();
+        if (manager == null) return;
+        NsdServiceInfo service = new NsdServiceInfo();
+        service.setServiceName("Tournois-EPS"); service.setServiceType("_tournois-eps._tcp."); service.setPort(port); service.setAttribute("token", sessionToken);
+        registrationListener = new NsdManager.RegistrationListener() {
+            public void onServiceRegistered(NsdServiceInfo info) { }
+            public void onRegistrationFailed(NsdServiceInfo info, int errorCode) { }
+            public void onServiceUnregistered(NsdServiceInfo info) { }
+            public void onUnregistrationFailed(NsdServiceInfo info, int errorCode) { }
+        };
+        try { manager.registerService(service, NsdManager.PROTOCOL_DNS_SD, registrationListener); } catch (Exception ignored) { }
+    }
+
+    private void unregisterMdns() {
+        if (nsdManager == null || registrationListener == null) return;
+        try { nsdManager.unregisterService(registrationListener); } catch (Exception ignored) { }
+        registrationListener = null;
     }
 
     private String localAddress() {

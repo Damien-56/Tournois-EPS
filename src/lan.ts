@@ -2,10 +2,12 @@ import type { TournamentStore } from "./domain/types";
 
 export type LanRole = "standalone" | "master" | "client";
 export interface LanInfo { address: string; port: number; joinUrl: string; }
+export interface LanPeer { name: string; address: string; port: number; joinUrl: string; }
 export interface LanAction { id: string; type: "record-match"; payload: Record<string, unknown>; }
 
 interface NativeLanPlugin {
   start(options: { port: number }): Promise<LanInfo>;
+  discover(): Promise<{ peers: LanPeer[] }>;
   stop(): Promise<void>;
   setState(options: { state: string }): Promise<void>;
   getState(): Promise<{ state: string; revision: number }>;
@@ -31,6 +33,11 @@ export async function startLanHost(port = 8765): Promise<LanInfo> {
   const plugin = native();
   if (!plugin) throw new Error("Le serveur local Android n'est pas encore chargé");
   return plugin.start({ port });
+}
+
+export async function discoverLanHosts(): Promise<LanPeer[]> {
+  const result = await native()?.discover();
+  return result?.peers ?? [];
 }
 
 export async function stopLanHost() { await native()?.stop(); }

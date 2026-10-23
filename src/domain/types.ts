@@ -1,0 +1,57 @@
+export type TournamentMode = "atp" | "classic" | "poule";
+export type StudentStatus = "present" | "absent" | "non-pratiquant";
+
+export interface Student {
+  id: string;
+  name: string;
+  gender?: "F" | "G" | "";
+  level: number;
+  status: StudentStatus;
+  points: number;
+  matches: number;
+  wins: number;
+  losses: number;
+  refereed: number;
+}
+
+export interface SchoolClass {
+  id: string;
+  name: string;
+  students: Student[];
+  createdAt: string;
+}
+
+export interface Match {
+  id: string;
+  tournamentId: string;
+  playerAId: string;
+  playerBId: string;
+  scoreA: number;
+  scoreB: number;
+  refereeId?: string;
+  playedAt: string;
+  round?: number;
+  court?: number;
+}
+
+export interface Tournament {
+  id: string;
+  classId: string;
+  name: string;
+  mode: TournamentMode;
+  createdAt: string;
+  pointsWin: number;
+  pointsLoss: number;
+  maxRankDiff: number;
+  courtCount: number;
+  groupSize: number;
+  matchFormat: "normal" | "flash";
+  matches: Match[];
+}
+
+export interface TournamentStore {
+  version: 1;
+  classes: SchoolClass[];
+  tournaments: Tournament[];
+  selectedClassId?: string;
+}

@@ -1,0 +1,65 @@
+name: Android release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances web
+        run: npm ci
+
+      - name: Construire le bundle web
+        run: npm run build
+
+      - name: Synchroniser Capacitor Android
+        run: npx cap sync android
+
+      - name: Préparer la clé de signature
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+
+      - name: Générer l’APK signé
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          version_name="${GITHUB_REF_NAME#v}"
+          version_code=$((1000 + GITHUB_RUN_NUMBER))
+          ./gradlew assembleRelease -PversionName="$version_name" -PversionCode="$version_code"
+
+      - name: Publier l’APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: intervalle-eps-${{ github.ref_name }}
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

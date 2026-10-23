@@ -12,7 +12,7 @@ Le réseau local est optionnel. En mode autonome, aucune connexion n’est ouver
                                    └── file d’actions
 ```
 
-La tablette maître reste la seule autorité : elle déduplique les matchs par identifiant et réémet l’état après chaque action. Le QR contient un jeton aléatoire de séance ; les requêtes sans ce jeton sont refusées. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
+La tablette maître reste la seule autorité : elle déduplique les matchs par identifiant et le journal d’actions refuse les réémissions d’un même identifiant. Le QR contient un jeton aléatoire de séance ; les requêtes sans ce jeton sont refusées. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
 
 ## Utilisation prévue
 

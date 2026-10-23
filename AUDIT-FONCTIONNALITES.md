@@ -33,7 +33,8 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Jeton de séance réseau local | OK — accès `/state` et `/action` protégé |
 | Mode élève sécurisé par PIN | OK MVP — réglages masqués et sortie protégée |
 | Découverte automatique mDNS/NSD | À finaliser |
-| Synchronisation sans conflit de toutes les opérations | À renforcer par journal d’actions signé |
+| Journal d’actions réseau dédoublonné | OK MVP — identifiant d’action obligatoire côté maître |
+| Signature cryptographique du journal | À envisager pour un déploiement multi-établissements |
 | Multi-langue | Hors périmètre — interface française conservée |
 | Publicité | Supprimée |
 | Abonnement/achat intégré | Supprimé |

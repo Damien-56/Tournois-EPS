@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Minimal local HTTP hub. The master tablet owns the state; clients only read
  * the snapshot or submit actions. No Internet service or third-party SDK is used. */
@@ -43,6 +45,7 @@ public class LanSyncPlugin extends Plugin {
     private volatile int revision = 0;
     private volatile String sessionToken;
     private final List<String> actions = Collections.synchronizedList(new ArrayList<>());
+    private final Set<String> actionIds = Collections.synchronizedSet(new HashSet<>());
 
     @PluginMethod
     public void start(PluginCall call) {
@@ -77,6 +80,7 @@ public class LanSyncPlugin extends Plugin {
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) { }
         sessionToken = null;
         actions.clear();
+        actionIds.clear();
         revision = 0;
         call.resolve();
     }
@@ -149,10 +153,15 @@ public class LanSyncPlugin extends Plugin {
             if ("OPTIONS".equals(method)) response = "";
             else if (!authorized(path)) { status = 401; response = "{\"error\":\"session-token-required\"}"; }
             else if ("GET".equals(method) && route(path).equals("/state")) response = state;
-            else if ("POST".equals(method) && route(path).equals("/action")) { actions.add(body); response = "{\"ok\":true}"; }
+            else if ("POST".equals(method) && route(path).equals("/action")) {
+                String actionId = actionId(body);
+                if (actionId.isEmpty()) { status = 400; response = "{\"error\":\"action-id-required\"}"; }
+                else if (actionIds.add(actionId)) { actions.add(body); response = "{\"ok\":true,\"queued\":true}"; }
+                else response = "{\"ok\":true,\"duplicate\":true}";
+            }
             else { status = 404; response = "{\"error\":\"not-found\"}"; }
             byte[] data = response.getBytes(StandardCharsets.UTF_8);
-            String statusText = status == 200 ? "OK" : status == 401 ? "Unauthorized" : "Not Found";
+            String statusText = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 401 ? "Unauthorized" : "Not Found";
             String headers = "HTTP/1.1 " + status + " " + statusText + "\r\nContent-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET,POST,OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: " + data.length + "\r\nConnection: close\r\n\r\n";
             output.write(headers.getBytes(StandardCharsets.UTF_8)); output.write(data); output.flush();
         } catch (Exception ignored) { }
@@ -168,6 +177,11 @@ public class LanSyncPlugin extends Plugin {
         int end = path.indexOf('&', start);
         String token = end >= 0 ? path.substring(start + marker.length(), end) : path.substring(start + marker.length());
         return sessionToken.equals(token);
+    }
+
+    private String actionId(String body) {
+        try { return new JSONObject(body).optString("id", ""); }
+        catch (Exception ignored) { return ""; }
     }
 
     private void post(String target, String body) throws Exception {

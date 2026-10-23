@@ -5,6 +5,7 @@ import { exportStore, importStore, loadStore, saveStore } from "./storage";
 import { installIntegrationBridge } from "./integration";
 import { fetchLanState, hasNativeLanHost, publishLanState, readLanActions, sendLanAction, startLanHost, stopLanHost, type LanInfo, type LanRole } from "./lan";
 import { LanQrCode } from "./LanQrCode";
+import { getPouleCourt, isAtpMatchAllowed, splitIntoGroups } from "./domain/rules";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -182,7 +183,7 @@ function TournamentScreen({ classItem, tournament, updateClass, updateTournament
   const activeRanking = useMemo(() => ranking.filter((student) => student.status === "present"), [ranking]);
   const rankingPosition = useMemo(() => new Map(activeRanking.map((student, index) => [student.id, index])), [activeRanking]);
   const fixtures = useMemo(() => { if (tournament.mode !== "classic") return []; const done = new Set(tournament.matches.flatMap((match) => [`${match.playerAId}:${match.playerBId}`, `${match.playerBId}:${match.playerAId}`])); return activeStudents.flatMap((a, i) => activeStudents.slice(i + 1).filter((b) => !done.has(`${a.id}:${b.id}`)).map((b) => [a, b] as const)); }, [activeStudents, tournament]);
-  const groups = useMemo(() => { if (tournament.mode !== "poule") return []; const result: Student[][] = []; for (let index = 0; index < activeStudents.length; index += tournament.groupSize) result.push(activeStudents.slice(index, index + tournament.groupSize)); return result; }, [activeStudents, tournament]);
+  const groups = useMemo(() => tournament.mode === "poule" ? splitIntoGroups(activeStudents, tournament.groupSize) : [], [activeStudents, tournament]);
   const atpSuggestions = useMemo(() => {
     if (tournament.mode !== "atp" || !playerAId) return [];
     const played = new Set(tournament.matches.flatMap((match) => [`${match.playerAId}:${match.playerBId}`, `${match.playerBId}:${match.playerAId}`]));
@@ -198,10 +199,10 @@ function TournamentScreen({ classItem, tournament, updateClass, updateTournament
     if (!a || !b || a.id === b.id || !Number.isFinite(sa) || !Number.isFinite(sb) || sa === sb) { notify("Sélectionnez deux joueurs et un score gagnant"); return; }
     if (tournament.mode === "atp") {
       const rankA = rankingPosition.get(a.id); const rankB = rankingPosition.get(b.id);
-      if (rankA !== undefined && rankB !== undefined && Math.abs(rankA - rankB) > tournament.maxRankDiff) { notify(`En ATP, l’écart maximum est de ${tournament.maxRankDiff} place(s)`); return; }
+      if (!isAtpMatchAllowed(rankA, rankB, tournament.maxRankDiff)) { notify(`En ATP, l’écart maximum est de ${tournament.maxRankDiff} place(s)`); return; }
     }
     const winner = sa > sb ? a : b; const loser = sa > sb ? b : a;
-    const match: Match = { id: uid("match"), tournamentId: tournament.id, playerAId: a.id, playerBId: b.id, scoreA: sa, scoreB: sb, refereeId: refereeId || undefined, playedAt: new Date().toISOString(), court: tournament.mode === "poule" ? (tournament.matches.length % tournament.courtCount) + 1 : undefined };
+    const match: Match = { id: uid("match"), tournamentId: tournament.id, playerAId: a.id, playerBId: b.id, scoreA: sa, scoreB: sb, refereeId: refereeId || undefined, playedAt: new Date().toISOString(), court: tournament.mode === "poule" ? getPouleCourt(tournament.matches.length, tournament.courtCount) : undefined };
     const updatedStudents = classItem.students.map((student) => {
       if (student.id === winner.id) return { ...student, points: student.points + tournament.pointsWin, matches: student.matches + 1, wins: student.wins + 1 };
       if (student.id === loser.id) return { ...student, points: student.points + tournament.pointsLoss, matches: student.matches + 1, losses: student.losses + 1 };

@@ -34,7 +34,7 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Mode élève sécurisé par PIN | OK MVP — réglages masqués et sortie protégée |
 | Découverte automatique mDNS/NSD | À finaliser |
 | Synchronisation sans conflit de toutes les opérations | À renforcer par journal d’actions signé |
-| Multi-langue | À ajouter dans l’interface personnelle |
+| Multi-langue | Hors périmètre — interface française conservée |
 | Publicité | Supprimée |
 | Abonnement/achat intégré | Supprimé |
 | Firebase/authentification obligatoire | Supprimé |

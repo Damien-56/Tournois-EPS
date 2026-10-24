@@ -57,7 +57,7 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - Icône Android : `android/app/src/main/res/drawable-nodpi/tournois_eps_icon.png`
 - Audit : `AUDIT-FONCTIONNALITES.md`
 - Architecture LAN : `RESEAU-LOCAL.md`
-- Référence APK source (sans binaire dans Git) : `docs/reprise/SOURCES.md`
+- Contrat d’intégration : bridge `window.epsTournois` et échanges JSON versionnés
 
 ## Commandes de travail
 

@@ -1,16 +1,15 @@
 # Audit fonctionnel — Tournois EPS
 
-## Observé dans l’APK d’origine
+## Périmètre fonctionnel couvert
 
-- package Android : `fr.appliseps.tournoiatp`, version `7.1.2` ;
 - application Capacitor/Vite avec bundle web embarqué ;
 - modes ATP, Classique et Poules ;
 - gestion des classes, élèves, appel, niveaux et profils ;
 - saisie des matchs, arbitres, points, badges et statistiques ;
 - accès élève par QR code et synchronisation temps réel ;
 - règles Badminton/Tennis de table et export PDF ;
-- traductions françaises, anglaises, espagnoles, italiennes et portugaises ;
-- dépendances Firebase, authentification sociale, notifications push, Play Billing, RevenueCat et mécanismes de licence.
+- interface française adaptée aux usages EPS ;
+- fonctionnement autonome et réseau local maître/client.
 
 ## Choix de la reconstruction
 
@@ -43,9 +42,9 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Abonnement/achat intégré | Supprimé |
 | Firebase/authentification obligatoire | Supprimé |
 
-## Hors périmètre volontaire
+## Garanties de distribution
 
-Les SDK publicitaires, identifiants publicitaires, achats, abonnements, RevenueCat, Play Billing, Pairip, Facebook Login et analytics commerciaux de l’APK d’origine ne sont pas réutilisés.
+Aucun SDK publicitaire, achat intégré, abonnement, authentification obligatoire, Firebase ou analytics commercial n’est utilisé.
 
 ## Vérifications
 

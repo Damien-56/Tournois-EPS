@@ -7,7 +7,7 @@ Date de référence : 24 octobre 2026
 - Dépôt local : `D:\Documents local\ChatGPT\récupération APK - REA\tournois-eps`
 - Dépôt GitHub : https://github.com/Damien-56/Tournois-EPS
 - Branche de développement : `codex/tournois-eps-parite`
-- Dernier commit : `4d7df39 feat: ajouter l icone Tournois EPS`
+- Dernier commit : `775c08f docs: retirer les references de source initiale`
 - Application Android : `fr.eps.tournois`
 - Nom affiché : `Tournois EPS`
 - Version actuelle : `1.0.1`, versionCode `2`

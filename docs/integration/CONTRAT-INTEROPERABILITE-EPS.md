@@ -1,6 +1,9 @@
 # Contrat d’interopérabilité EPS
 
 Tournois EPS adopte le contrat commun de la galaxie EPS défini avec Intervalle EPS.
+Dans l’architecture de la galaxie, le Tableau de bord EPS est le consommateur central
+des résultats et la destination des présences consolidées. Les applications spécialisées
+ne consomment que les ressources dont elles ont besoin.
 Les applications restent autonomes, hors ligne et sans base centrale. Un échange est
 déclenché explicitement par l’utilisateur au moyen d’un fichier JSON ou d’une URL HTTPS.
 
@@ -62,3 +65,6 @@ local ou un partage direct peuvent fournir l’échange ; aucun service commerci
 
 Le prompt prêt à copier pour l’adoption du contrat dans les autres projets est disponible
 dans [PROMPT-ADOPTION-GALAXIE-EPS.md](PROMPT-ADOPTION-GALAXIE-EPS.md).
+
+La répartition complète des responsabilités, la circulation des appels et le rôle du
+tableau de bord sont détaillés dans [BILAN-INTEROPERABILITE-GALAXIE-EPS.md](BILAN-INTEROPERABILITE-GALAXIE-EPS.md).

@@ -1,0 +1,21 @@
+{
+  "name": "Tournois EPS",
+  "short_name": "Tournois EPS",
+  "description": "Gestion indépendante des tournois EPS.",
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f8fc",
+  "theme_color": "#17343e",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

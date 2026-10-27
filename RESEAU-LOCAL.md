@@ -12,7 +12,7 @@ Le réseau local est optionnel. En mode autonome, aucune connexion n’est ouver
                                    └── file d’actions
 ```
 
-La tablette maître reste la seule autorité : elle déduplique les matchs par identifiant et le journal d’actions refuse les réémissions d’un même identifiant. Le QR contient un jeton aléatoire de séance ; les requêtes sans ce jeton sont refusées. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
+La tablette maître reste la seule autorité : elle déduplique les actions par identifiant et le journal refuse les réémissions d’une même action. Les actions métier supportées sont l’enregistrement (`record-match`), la correction (`update-match`) et l’annulation (`delete-match`) d’un match. Le QR contient un jeton aléatoire de séance ; les requêtes sans ce jeton sont refusées. La perte du Wi‑Fi ne détruit pas les données du maître, qui restent dans son stockage local.
 
 ## Utilisation prévue
 
@@ -31,4 +31,4 @@ La tablette maître reste la seule autorité : elle déduplique les matchs par i
 
 ## Contrat d’intégration
 
-Les autres applications peuvent obtenir l’état courant avec `window.epsTournois.getSnapshot()`, importer un état avec `importSnapshot(snapshot)` et s’abonner à `onChange(listener)`. Le contrat reste indépendant du transport : stockage local, réseau local ou intégration directe produisent le même `TournamentStore`.
+Les autres applications peuvent obtenir l’état courant avec `window.epsTournois.getSnapshot()`, importer un état avec `importSnapshot(snapshot)` et s’abonner à `onChange(listener)`. Le bridge expose `version: 1` et les capacités `snapshot.read`, `snapshot.import` et `snapshot.subscribe`. Les écouteurs sont notifiés après chaque changement d’état. Le contrat reste indépendant du transport : stockage local, réseau local ou intégration directe produisent le même `TournamentStore`.

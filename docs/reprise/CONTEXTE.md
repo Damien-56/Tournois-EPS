@@ -28,10 +28,11 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - activités Badminton, Tennis de table ou activité libre ;
 - saisie des matchs, scores, arbitre, points et classement ;
 - score cible normal/flash configurable ;
-- historique et annulation du dernier match avec recalcul fiable des statistiques ;
+- historique, correction/annulation d’un match ancien avec recalcul fiable des statistiques ;
 - bilan pédagogique, taux de victoire et badges calculés localement ;
 - import/export JSON versionné ;
 - impression/PDF via l’impression système du navigateur ;
+- PWA installable PC/iOS/Android avec manifeste et cache hors ligne ;
 - mode élève protégé par PIN ;
 - réseau local maître/client Android ;
 - QR code de connexion ;
@@ -39,7 +40,7 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - jeton de session réseau ;
 - déduplication des actions réseau ;
 - file d’attente des actions clientes pendant une coupure Wi-Fi ;
-- bridge d’intégration `window.epsTournois` ;
+- bridge d’intégration `window.epsTournois` versionné, avec notification `onChange` ;
 - icône personnalisée intégrée Android et Web ;
 - aucune publicité, facturation, abonnement, Firebase ou analytics commercial.
 
@@ -54,6 +55,8 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - Stockage local : `src/storage.ts`
 - Bridge d’intégration : `src/integration.ts`
 - Icône Web : `public/icon.png`
+- Manifeste PWA : `public/manifest.webmanifest`
+- Service worker PWA : `public/sw.js`
 - Icône Android : `android/app/src/main/res/drawable-nodpi/tournois_eps_icon.png`
 - Audit : `AUDIT-FONCTIONNALITES.md`
 - Architecture LAN : `RESEAU-LOCAL.md`
@@ -84,7 +87,7 @@ $adb = "C:\Users\guill\AppData\Local\Android\Sdk\platform-tools\adb.exe"
 
 ## État de validation
 
-- Tests unitaires : 6 tests réussis.
+- Tests unitaires : 8 tests réussis.
 - Build web : réussi.
 - Synchronisation Capacitor : réussie.
 - Compilation Gradle Android : réussie.
@@ -94,7 +97,7 @@ $adb = "C:\Users\guill\AppData\Local\Android\Sdk\platform-tools\adb.exe"
 ## Priorités de reprise
 
 1. Valider une séance complète avec deux tablettes Android : maître, cliente, perte Wi-Fi, reprise et déduplication.
-2. Ajouter une vraie correction/édition d’un match ancien, pas seulement l’annulation du dernier.
+2. Tester l’installation et le cycle de mise à jour PWA sur PC, iOS et Android.
 3. Enrichir les règles Badminton/Tennis de table et les statistiques par séance.
 4. Produire un export PDF plus maîtrisé et éventuellement CSV.
 5. Ajouter les actions natives de notification Android : pause, suivant, précédent et arrêt.

@@ -1,19 +1,26 @@
-name: Intervalle EPS CI
+name: Vérifier Tournois EPS
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Exécuter les tests
+        run: npm run test -- --run
+      - name: Construire la PWA
+        run: npm run build

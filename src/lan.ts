@@ -3,7 +3,7 @@ import type { TournamentStore } from "./domain/types";
 export type LanRole = "standalone" | "master" | "client";
 export interface LanInfo { address: string; port: number; joinUrl: string; }
 export interface LanPeer { name: string; address: string; port: number; joinUrl: string; }
-export interface LanAction { id: string; type: "record-match" | "delete-match"; payload: Record<string, unknown>; }
+export interface LanAction { id: string; type: "record-match" | "update-match" | "delete-match"; payload: Record<string, unknown>; }
 
 interface NativeLanPlugin {
   start(options: { port: number }): Promise<LanInfo>;

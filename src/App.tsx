@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { uid } from "./domain/ids";
 import type { Match, SchoolClass, Sport, Student, StudentStatus, Tournament, TournamentMode, TournamentStore } from "./domain/types";
 import { exportStore, importStore, loadStore, saveStore } from "./storage";
@@ -7,6 +7,7 @@ import { discoverLanHosts, fetchLanState, flushQueuedLanActions, hasNativeLanHos
 import { LanQrCode } from "./LanQrCode";
 import { getPouleCourt, isAtpMatchAllowed, splitIntoGroups } from "./domain/rules";
 import { getClassPerformance, getTargetScore, recalculateClassStats } from "./domain/stats";
+import { isValidMatchResult, replaceTournamentMatch } from "./domain/matches";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -28,9 +29,19 @@ function App() {
   const [lanError, setLanError] = useState("");
   const [lanActionCursor, setLanActionCursor] = useState(0);
   const [lanPeers, setLanPeers] = useState<LanPeer[]>([]);
+  const storeRef = useRef(store);
+  const integrationNotifyRef = useRef<((snapshot: TournamentStore) => void) | undefined>(undefined);
+  storeRef.current = store;
 
   useEffect(() => { saveStore(store); }, [store]);
-  useEffect(() => { installIntegrationBridge(() => store, (snapshot) => setStore(snapshot)); }, [store]);
+  useEffect(() => {
+    integrationNotifyRef.current = installIntegrationBridge(() => storeRef.current, (snapshot) => setStore(snapshot));
+    return () => {
+      integrationNotifyRef.current = undefined;
+      delete window.epsTournois;
+    };
+  }, []);
+  useEffect(() => { integrationNotifyRef.current?.(store); }, [store]);
   useEffect(() => {
     if (lanRole !== "master" || !lanInfo) return;
     publishLanState(store).catch((error) => setLanError(error instanceof Error ? error.message : "Publication locale impossible"));
@@ -121,17 +132,35 @@ function App() {
 
 function applyLanAction(store: TournamentStore, action: { type?: string; payload?: Record<string, unknown> }): TournamentStore {
   if (action.type === "delete-match") return deleteMatchAction(store, action.payload || {});
+  if (action.type === "update-match") return updateMatchAction(store, action.payload || {});
   return applyMatchAction(store, action.payload || {});
 }
 
 function applyMatchAction(store: TournamentStore, payload: Record<string, unknown>): TournamentStore {
   const classId = String(payload.classId || ""); const tournamentId = String(payload.tournamentId || "");
-  const match = payload.match as Match | undefined; const winnerId = String(payload.winnerId || ""); const loserId = String(payload.loserId || ""); const refereeId = payload.refereeId ? String(payload.refereeId) : "";
+  const match = payload.match as Match | undefined;
   if (!match || !classId || !tournamentId) return store;
   const tournament = store.tournaments.find((item) => item.id === tournamentId); const schoolClass = store.classes.find((item) => item.id === classId);
-  if (!tournament || !schoolClass || tournament.matches.some((item) => item.id === match.id)) return store;
-  void winnerId; void loserId; void refereeId; void schoolClass;
+  const referee = match.refereeId ? schoolClass?.students.find((student) => student.id === match.refereeId) : undefined;
+  const playersExist = schoolClass?.students.some((student) => student.id === match.playerAId) && schoolClass?.students.some((student) => student.id === match.playerBId);
+  if (!tournament || tournament.classId !== classId || !schoolClass || match.tournamentId !== tournamentId || !playersExist || (match.refereeId && !referee) || !isValidMatchResult(match) || tournament.matches.some((item) => item.id === match.id)) return store;
   const tournaments = store.tournaments.map((item) => item.id === tournamentId ? { ...item, matches: [...item.matches, match] } : item);
+  return { ...store, classes: store.classes.map((item) => item.id === classId ? recalculateClassStats(item, tournaments) : item), tournaments };
+}
+
+function updateMatchAction(store: TournamentStore, payload: Record<string, unknown>): TournamentStore {
+  const classId = String(payload.classId || "");
+  const tournamentId = String(payload.tournamentId || "");
+  const match = payload.match as Match | undefined;
+  if (!match || !classId || !tournamentId || match.tournamentId !== tournamentId || !isValidMatchResult(match)) return store;
+  const tournament = store.tournaments.find((item) => item.id === tournamentId);
+  const schoolClass = store.classes.find((item) => item.id === classId);
+  const playersExist = schoolClass?.students.some((student) => student.id === match.playerAId) && schoolClass?.students.some((student) => student.id === match.playerBId);
+  const refereeValid = !match.refereeId || schoolClass?.students.some((student) => student.id === match.refereeId);
+  if (!tournament || tournament.classId !== classId || !schoolClass || !playersExist || !refereeValid) return store;
+  const updatedTournament = replaceTournamentMatch(tournament, match);
+  if (!updatedTournament) return store;
+  const tournaments = store.tournaments.map((item) => item.id === tournamentId ? updatedTournament : item);
   return { ...store, classes: store.classes.map((item) => item.id === classId ? recalculateClassStats(item, tournaments) : item), tournaments };
 }
 
@@ -198,7 +227,10 @@ function TournamentScreen({ classItem, tournament, allTournaments, updateClass, 
   const [scoreA, setScoreA] = useState("21");
   const [scoreB, setScoreB] = useState("15");
   const [studentMode, setStudentMode] = useState(false);
+  const [editingMatchId, setEditingMatchId] = useState<string>();
   const activeStudents = classItem.students.filter((student) => student.status === "present");
+  const playerOptions = editingMatchId ? classItem.students : activeStudents;
+  const refereeOptions = editingMatchId ? classItem.students : activeStudents;
   const ranking = useMemo(() => [...classItem.students].sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name)), [classItem.students]);
   const activeRanking = useMemo(() => ranking.filter((student) => student.status === "present"), [ranking]);
   const rankingPosition = useMemo(() => new Map(activeRanking.map((student, index) => [student.id, index])), [activeRanking]);
@@ -216,33 +248,32 @@ function TournamentScreen({ classItem, tournament, allTournaments, updateClass, 
     const a = classItem.students.find((student) => student.id === playerAId);
     const b = classItem.students.find((student) => student.id === playerBId);
     const sa = Number(scoreA); const sb = Number(scoreB);
-    if (!a || !b || a.id === b.id || !Number.isFinite(sa) || !Number.isFinite(sb) || sa === sb) { notify("Sélectionnez deux joueurs et un score gagnant"); return; }
+    if (!a || !b || !isValidMatchResult({ playerAId: a.id, playerBId: b.id, scoreA: sa, scoreB: sb })) { notify("Sélectionnez deux joueurs et un score gagnant"); return; }
     if (tournament.mode === "atp") {
       const rankA = rankingPosition.get(a.id); const rankB = rankingPosition.get(b.id);
       if (!isAtpMatchAllowed(rankA, rankB, tournament.maxRankDiff)) { notify(`En ATP, l’écart maximum est de ${tournament.maxRankDiff} place(s)`); return; }
     }
-    const winner = sa > sb ? a : b; const loser = sa > sb ? b : a;
-    const match: Match = { id: uid("match"), tournamentId: tournament.id, playerAId: a.id, playerBId: b.id, scoreA: sa, scoreB: sb, refereeId: refereeId || undefined, playedAt: new Date().toISOString(), court: tournament.mode === "poule" ? getPouleCourt(tournament.matches.length, tournament.courtCount) : undefined };
-    const updatedStudents = classItem.students.map((student) => {
-      if (student.id === winner.id) return { ...student, points: student.points + tournament.pointsWin, matches: student.matches + 1, wins: student.wins + 1 };
-      if (student.id === loser.id) return { ...student, points: student.points + tournament.pointsLoss, matches: student.matches + 1, losses: student.losses + 1 };
-      if (refereeId && student.id === refereeId) return { ...student, points: student.points + 1, refereed: student.refereed + 1 };
-      return student;
-    });
-    const nextTournament = { ...tournament, matches: [...tournament.matches, match] };
+    const previousMatch = editingMatchId ? tournament.matches.find((item) => item.id === editingMatchId) : undefined;
+    const match: Match = { ...(previousMatch || {}), id: previousMatch?.id || uid("match"), tournamentId: tournament.id, playerAId: a.id, playerBId: b.id, scoreA: sa, scoreB: sb, refereeId: refereeId || undefined, playedAt: previousMatch?.playedAt || new Date().toISOString(), court: previousMatch?.court ?? (tournament.mode === "poule" ? getPouleCourt(tournament.matches.length, tournament.courtCount) : undefined) };
+    const nextTournament = previousMatch ? replaceTournamentMatch(tournament, match) : { ...tournament, matches: [...tournament.matches, match] };
+    if (!nextTournament) { notify("Ce match n'existe plus dans la séance"); return; }
     const nextTournaments = allTournaments.map((item) => item.id === tournament.id ? nextTournament : item);
     updateClass(recalculateClassStats(classItem, nextTournaments)); updateTournament(nextTournament);
     if (lanRole === "client" && joinUrl) {
-      const action: LanAction = { id: match.id, type: "record-match", payload: { classId: classItem.id, tournamentId: tournament.id, match, winnerId: winner.id, loserId: loser.id, refereeId: refereeId || undefined } };
+      const action: LanAction = { id: editingMatchId ? uid("update") : match.id, type: editingMatchId ? "update-match" : "record-match", payload: { classId: classItem.id, tournamentId: tournament.id, match } };
       sendLanAction(joinUrl, action).catch(() => { queueLanAction(joinUrl, action); notify("Match enregistré localement, en attente du maître"); });
     }
-    setPlayerAId(""); setPlayerBId(""); notify(lanRole === "client" ? "Match envoyé à la tablette maître" : "Match enregistré et classement mis à jour");
+    setPlayerAId(""); setPlayerBId(""); setRefereeId(""); setEditingMatchId(undefined); notify(lanRole === "client" ? (editingMatchId ? "Correction envoyée à la tablette maître" : "Match envoyé à la tablette maître") : (editingMatchId ? "Match corrigé et classement mis à jour" : "Match enregistré et classement mis à jour"));
   };
+  const editMatch = (match: Match) => {
+    setEditingMatchId(match.id); setPlayerAId(match.playerAId); setPlayerBId(match.playerBId); setRefereeId(match.refereeId || ""); setScoreA(String(match.scoreA)); setScoreB(String(match.scoreB));
+  };
+  const cancelEdit = () => { setEditingMatchId(undefined); setPlayerAId(""); setPlayerBId(""); setRefereeId(""); };
   const deleteMatch = (matchId: string) => {
     if (!window.confirm("Annuler ce match et recalculer le classement ?")) return;
     const nextTournament = { ...tournament, matches: tournament.matches.filter((match) => match.id !== matchId) };
     const nextTournaments = allTournaments.map((item) => item.id === tournament.id ? nextTournament : item);
-    updateClass(recalculateClassStats(classItem, nextTournaments)); updateTournament(nextTournament);
+    updateClass(recalculateClassStats(classItem, nextTournaments)); updateTournament(nextTournament); if (editingMatchId === matchId) cancelEdit();
     if (lanRole === "client" && joinUrl) {
       const action: LanAction = { id: `delete-${matchId}`, type: "delete-match", payload: { classId: classItem.id, tournamentId: tournament.id, matchId } };
       sendLanAction(joinUrl, action).catch(() => { queueLanAction(joinUrl, action); notify("Annulation en attente du maître"); });
@@ -254,7 +285,7 @@ function TournamentScreen({ classItem, tournament, allTournaments, updateClass, 
     const expectedPin = classItem.exitPin;
     if (!expectedPin || window.prompt("Code PIN professeur") === expectedPin) setStudentMode(false);
   };
-  return <main className="app-shell">{!studentMode && <Header onExport={() => {}} onImport={() => {}} />}<div className="subbar"><button className="back" onClick={studentMode ? exitStudentMode : onBack}>{studentMode ? "🔒 Quitter le mode élève" : `← ${classItem.name}`}</button><span>{tournament.name}</span><span className={`mode-badge ${tournament.mode}`}>{tournament.mode.toUpperCase()}</span></div><section className="page-heading tournament-heading"><div><p className="eyebrow">{tournament.mode === "atp" ? "DÉFIS & CLASSEMENT" : tournament.mode === "poule" ? "TERRAINS & POULES" : "CHAMPIONNAT"}</p><h1>{tournament.name}</h1><p>{tournament.matches.length} match(s) enregistré(s) · {tournament.sport === "tennis-table" ? "Tennis de table" : tournament.sport === "autre" ? "Autre activité" : "Badminton"} · score cible {getTargetScore(tournament.matchFormat, tournament.targetScore)}</p></div><div className="heading-actions">{!studentMode && <button className="secondary" onClick={() => setStudentMode(true)}>Mode élève</button>}<button className="secondary" onClick={() => window.print()}>Imprimer / PDF</button></div></section><div className="grid tournament-grid"><section className="panel"><div className="section-title"><div><p className="eyebrow">SAISIE RAPIDE</p><h2>Enregistrer un match</h2></div></div><div className="match-form"><select value={playerAId} onChange={(event) => setPlayerAId(event.target.value)}><option value="">Joueur A</option>{activeStudents.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select>{tournament.mode === "atp" && <div className="atp-suggestions">{atpSuggestions.length ? <><small>Adversaires compatibles avec l’écart configuré :</small><div>{atpSuggestions.map((student) => <button className="suggestion" key={student.id} onClick={() => setPlayerBId(student.id)}>{student.name}</button>)}</div></> : <small>{playerAId ? "Aucun adversaire non joué dans l’écart configuré." : "Choisissez Joueur A pour voir les défis compatibles."}</small>}</div>}<span className="versus">VS</span><select value={playerBId} onChange={(event) => setPlayerBId(event.target.value)}><option value="">Joueur B</option>{activeStudents.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select><div className="scores"><input type="number" min="0" value={scoreA} onChange={(event) => setScoreA(event.target.value)} /><b>—</b><input type="number" min="0" value={scoreB} onChange={(event) => setScoreB(event.target.value)} /></div><select value={refereeId} onChange={(event) => setRefereeId(event.target.value)}><option value="">Arbitre (facultatif)</option>{activeStudents.filter((student) => student.id !== playerAId && student.id !== playerBId).map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select><button className="primary full" onClick={recordMatch}>Valider le match</button></div><div className="match-history"><h3>Historique de la séance</h3>{tournament.matches.length > 0 && <button className="link-button" onClick={() => deleteMatch(tournament.matches[tournament.matches.length - 1].id)}>Annuler le dernier match</button>}{!tournament.matches.length && <p className="muted">Aucun match enregistré.</p>}{[...tournament.matches].reverse().map((match) => <div className="history-row" key={match.id}><span>{studentName(match.playerAId)} <b>{match.scoreA}–{match.scoreB}</b> {studentName(match.playerBId)}</span><small>{new Date(match.playedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small></div>)}</div></section><section className="panel"><div className="section-title"><div><p className="eyebrow">CLASSEMENT EN DIRECT</p><h2>Classement</h2></div></div><div className="ranking-list">{ranking.map((student, index) => <div className="ranking-row" key={student.id}><span className={`rank ${index < 3 ? "podium" : ""}`}>{index + 1}</span><span className="student-avatar">{student.name.slice(0, 1)}</span><span className="rank-name"><strong>{student.name}</strong><small>{student.wins} V · {student.losses} D · {student.refereed} arb.</small></span><b className="points">{student.points} <small>pts</small></b></div>)}</div></section></div>{!studentMode && <section className="panel planning-panel"><div className="section-title"><div><p className="eyebrow">ORGANISATION</p><h2>{tournament.mode === "poule" ? "Répartition des poules" : tournament.mode === "classic" ? "Matchs à venir" : "Règles ATP"}</h2></div></div><TournamentSettings tournament={tournament} updateTournament={updateTournament} />{tournament.mode === "poule" && <div className="group-grid">{groups.map((group, index) => <div className="group-card" key={index}><strong>Terrain {(index % tournament.courtCount) + 1} · Poule {Math.floor(index / tournament.courtCount) + 1}</strong>{group.map((student) => <span key={student.id}>{student.name}</span>)}</div>)}{!groups.length && <p className="muted">Ajoutez des élèves présents pour générer les poules.</p>}</div>}{tournament.mode === "classic" && <div className="fixture-grid">{fixtures.slice(0, 12).map(([a, b]) => <span key={`${a.id}-${b.id}`}>{a.name} <b>vs</b> {b.name}</span>)}{!fixtures.length && <p className="muted">Tous les matchs disponibles sont joués.</p>}</div>}{tournament.mode === "atp" && <div className="rules-strip"><span>Victoire <b>+{tournament.pointsWin} pts</b></span><span>Défaite <b>+{tournament.pointsLoss} pt</b></span><span>Écart max <b>{tournament.maxRankDiff} places</b></span></div>}</section>}</main>;
+  return <main className="app-shell">{!studentMode && <Header onExport={() => {}} onImport={() => {}} />}<div className="subbar"><button className="back" onClick={studentMode ? exitStudentMode : onBack}>{studentMode ? "🔒 Quitter le mode élève" : `← ${classItem.name}`}</button><span>{tournament.name}</span><span className={`mode-badge ${tournament.mode}`}>{tournament.mode.toUpperCase()}</span></div><section className="page-heading tournament-heading"><div><p className="eyebrow">{tournament.mode === "atp" ? "DÉFIS & CLASSEMENT" : tournament.mode === "poule" ? "TERRAINS & POULES" : "CHAMPIONNAT"}</p><h1>{tournament.name}</h1><p>{tournament.matches.length} match(s) enregistré(s) · {tournament.sport === "tennis-table" ? "Tennis de table" : tournament.sport === "autre" ? "Autre activité" : "Badminton"} · score cible {getTargetScore(tournament.matchFormat, tournament.targetScore)}</p></div><div className="heading-actions">{!studentMode && <button className="secondary" onClick={() => setStudentMode(true)}>Mode élève</button>}<button className="secondary" onClick={() => window.print()}>Imprimer / PDF</button></div></section><div className="grid tournament-grid"><section className="panel"><div className="section-title"><div><p className="eyebrow">SAISIE RAPIDE</p><h2>{editingMatchId ? "Corriger un match" : "Enregistrer un match"}</h2></div></div><div className="match-form"><select value={playerAId} onChange={(event) => setPlayerAId(event.target.value)}><option value="">Joueur A</option>{playerOptions.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select>{tournament.mode === "atp" && <div className="atp-suggestions">{atpSuggestions.length ? <><small>Adversaires compatibles avec l’écart configuré :</small><div>{atpSuggestions.map((student) => <button className="suggestion" key={student.id} onClick={() => setPlayerBId(student.id)}>{student.name}</button>)}</div></> : <small>{playerAId ? "Aucun adversaire non joué dans l’écart configuré." : "Choisissez Joueur A pour voir les défis compatibles."}</small>}</div>}<span className="versus">VS</span><select value={playerBId} onChange={(event) => setPlayerBId(event.target.value)}><option value="">Joueur B</option>{playerOptions.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select><div className="scores"><input type="number" min="0" value={scoreA} onChange={(event) => setScoreA(event.target.value)} /><b>—</b><input type="number" min="0" value={scoreB} onChange={(event) => setScoreB(event.target.value)} /></div><select value={refereeId} onChange={(event) => setRefereeId(event.target.value)}><option value="">Arbitre (facultatif)</option>{refereeOptions.filter((student) => student.id !== playerAId && student.id !== playerBId).map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}</select><div className="match-form-actions"><button className="primary full" onClick={recordMatch}>{editingMatchId ? "Enregistrer la correction" : "Valider le match"}</button>{editingMatchId && <button className="secondary full" onClick={cancelEdit}>Annuler la correction</button>}</div></div><div className="match-history"><h3>Historique de la séance</h3>{tournament.matches.length > 0 && <button className="link-button" onClick={() => deleteMatch(tournament.matches[tournament.matches.length - 1].id)}>Annuler le dernier match</button>}{!tournament.matches.length && <p className="muted">Aucun match enregistré.</p>}{[...tournament.matches].reverse().map((match) => <div className="history-row" key={match.id}><span>{studentName(match.playerAId)} <b>{match.scoreA}–{match.scoreB}</b> {studentName(match.playerBId)}</span><div className="history-actions">{!studentMode && <button className="link-button" onClick={() => editMatch(match)}>Modifier</button>}<small>{new Date(match.playedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small></div></div>)}</div></section><section className="panel"><div className="section-title"><div><p className="eyebrow">CLASSEMENT EN DIRECT</p><h2>Classement</h2></div></div><div className="ranking-list">{ranking.map((student, index) => <div className="ranking-row" key={student.id}><span className={`rank ${index < 3 ? "podium" : ""}`}>{index + 1}</span><span className="student-avatar">{student.name.slice(0, 1)}</span><span className="rank-name"><strong>{student.name}</strong><small>{student.wins} V · {student.losses} D · {student.refereed} arb.</small></span><b className="points">{student.points} <small>pts</small></b></div>)}</div></section></div>{!studentMode && <section className="panel planning-panel"><div className="section-title"><div><p className="eyebrow">ORGANISATION</p><h2>{tournament.mode === "poule" ? "Répartition des poules" : tournament.mode === "classic" ? "Matchs à venir" : "Règles ATP"}</h2></div></div><TournamentSettings tournament={tournament} updateTournament={updateTournament} />{tournament.mode === "poule" && <div className="group-grid">{groups.map((group, index) => <div className="group-card" key={index}><strong>Terrain {(index % tournament.courtCount) + 1} · Poule {Math.floor(index / tournament.courtCount) + 1}</strong>{group.map((student) => <span key={student.id}>{student.name}</span>)}</div>)}{!groups.length && <p className="muted">Ajoutez des élèves présents pour générer les poules.</p>}</div>}{tournament.mode === "classic" && <div className="fixture-grid">{fixtures.slice(0, 12).map(([a, b]) => <span key={`${a.id}-${b.id}`}>{a.name} <b>vs</b> {b.name}</span>)}{!fixtures.length && <p className="muted">Tous les matchs disponibles sont joués.</p>}</div>}{tournament.mode === "atp" && <div className="rules-strip"><span>Victoire <b>+{tournament.pointsWin} pts</b></span><span>Défaite <b>+{tournament.pointsLoss} pt</b></span><span>Écart max <b>{tournament.maxRankDiff} places</b></span></div>}</section>}</main>;
 }
 
 export default App;

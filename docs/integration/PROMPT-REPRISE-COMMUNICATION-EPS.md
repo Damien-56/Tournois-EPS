@@ -26,6 +26,13 @@ les résultats de toutes les applications spécialisées pour alimenter la fiche
 la fiche classe. Gestion SNS fournit ses données élèves/classes/groupes, mais n’a pas à
 consommer les résultats de tournois, CrossScan ou course d’orientation.
 
+Principe d’indépendance absolue : aucune application ne doit être indispensable au
+démarrage ou au fonctionnement d’une autre. Chaque application doit fonctionner seule,
+avec ses données locales, puis profiter automatiquement des applications effectivement
+disponibles. Une application absente est un fournisseur indisponible, jamais une erreur
+bloquante. Les événements non transmis sont conservés dans une file locale et rejoués à
+l’ouverture suivante ou à l’installation ultérieure du destinataire.
+
 L’appel est transversal : il peut être fait dans le tableau de bord ou dans une autre
 application. Dans tous les cas, toute modification d’appel doit être transmise au tableau
 de bord EPS, qui conserve la synthèse officielle.
@@ -94,6 +101,15 @@ Règles de propriété :
 - Gestion SNS ne consomme pas les résultats des autres activités ;
 - l’appel est toujours remonté au tableau de bord ;
 - aucune donnée ne doit être écrasée sans contrôle de révision.
+- l’absence du tableau de bord, de Gestion SNS ou de toute autre application ne doit
+  jamais empêcher le fonctionnement local d’une application spécialisée ;
+- chaque application doit proposer un mode manuel ou un import local lorsque son
+  fournisseur habituel n’est pas disponible ;
+- une demande vers une application absente doit produire un état `unavailable` non fatal ;
+- les événements sortants doivent être persistés localement jusqu’à leur transmission ou
+  leur export manuel ;
+- une application installée plus tard doit pouvoir récupérer les événements compatibles
+  déjà conservés.
 
 Règles de non-régression :
 - la version 1 est additive ;

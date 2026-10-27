@@ -6,6 +6,9 @@ des résultats et la destination des présences consolidées. Les applications s
 ne consomment que les ressources dont elles ont besoin.
 Les applications restent autonomes, hors ligne et sans base centrale. Un échange est
 déclenché explicitement par l’utilisateur au moyen d’un fichier JSON ou d’une URL HTTPS.
+La disponibilité d’une application partenaire est toujours optionnelle : une application
+doit continuer à fonctionner seule si son fournisseur ou son destinataire n’est pas
+installé. Les échanges non remis peuvent être conservés dans une file locale.
 
 ## Enveloppe commune
 

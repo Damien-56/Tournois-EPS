@@ -302,3 +302,79 @@ Son rôle sera de fournir :
 - les contrôles de doublons ;
 - les migrations ;
 - les tests de compatibilité.
+
+## 10. Indépendance obligatoire des applications
+
+La présence ou l’absence d’une application ne doit jamais empêcher une autre application
+de fonctionner.
+
+Chaque application doit donc :
+
+- démarrer et fonctionner seule avec ses propres données locales ;
+- ne jamais considérer le Tableau de bord EPS comme un service obligatoire ;
+- ne jamais considérer Gestion SNS ou une autre application comme une dépendance de
+  démarrage ;
+- déclarer les capacités effectivement disponibles sur le terminal ;
+- ignorer proprement une application absente, ancienne ou momentanément indisponible ;
+- conserver localement les événements qu’elle devra transmettre plus tard ;
+- accepter une saisie manuelle ou un import local lorsque la source habituelle n’est pas
+  installée.
+
+### Cas d’usage obligatoires
+
+| Situation | Comportement attendu |
+|---|---|
+| Tableau de bord seul | Il permet de créer des classes, élèves et séances manuellement. |
+| Gestion SNS seule | Elle fonctionne pour ses usages natation sans tableau de bord. |
+| Tournois seul | Il permet d’importer ou saisir une classe et de gérer un tournoi complet. |
+| CrossScan seul | Il peut créer un événement, saisir les participants et produire ses résultats. |
+| Course d’orientation seule | Elle peut créer une carte et des parcours sans roster externe. |
+| Intervalle seul | Il peut créer et exécuter une séance sans classe importée. |
+| Acrosport seul | Il peut consulter et gérer son catalogue sans élèves externes. |
+| Tableau de bord absent | Les applications spécialisées conservent leurs résultats dans une file locale. |
+| Application installée plus tard | Elle récupère les événements compatibles déjà conservés localement. |
+
+### Découverte souple
+
+Le registre ne doit pas être une liste bloquante d’applications installées. Il doit
+fonctionner comme un annuaire de capacités :
+
+```text
+Gestion SNS présente       → sns-roster disponible
+Tournois individuel absent → individual-result indisponible
+Tableau de bord absent     → transmission différée dans la file locale
+```
+
+Une demande vers une application absente retourne un état non bloquant :
+
+```json
+{
+  "status": "unavailable",
+  "app": "tableau-de-bord-eps",
+  "retry": "on-next-open"
+}
+```
+
+Les applications ne doivent pas tenter de scanner ou de contrôler tout le terminal.
+Elles utilisent des identifiants connus, des capacités déclarées et des réponses avec
+expiration courte. L’absence d’un fournisseur est un état normal, pas une erreur fatale.
+
+### File locale de transmission
+
+Chaque application possède une file locale d’événements sortants :
+
+```text
+événement créé
+    ↓
+stockage local immédiat
+    ↓
+transmission si le destinataire est disponible
+    ↓
+conservation si le destinataire est absent
+    ↓
+rejeu au prochain démarrage compatible
+```
+
+Cela permet à Tournois EPS, CrossScan ou une autre application de travailler plusieurs
+jours sans Tableau de bord EPS, puis de transmettre les résultats lorsque celui-ci est
+installé ou ouvert ultérieurement.

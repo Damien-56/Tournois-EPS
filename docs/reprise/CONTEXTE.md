@@ -41,6 +41,7 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - déduplication des actions réseau ;
 - file d’attente des actions clientes pendant une coupure Wi-Fi ;
 - bridge d’intégration `window.epsTournois` versionné, avec notification `onChange` ;
+- contrat d’interopérabilité EPS `eps.interop-envelope` avec import explicite de classes/groupes depuis une URL HTTPS ;
 - icône personnalisée intégrée Android et Web ;
 - aucune publicité, facturation, abonnement, Firebase ou analytics commercial.
 
@@ -54,13 +55,14 @@ L’architecture multi-tablettes retenue est locale : une tablette maître conse
 - Synchronisation LAN : `src/lan.ts`
 - Stockage local : `src/storage.ts`
 - Bridge d’intégration : `src/integration.ts`
+- Adaptateur d’interopérabilité EPS : `src/integration/epsInterop.ts`
 - Icône Web : `public/icon.png`
 - Manifeste PWA : `public/manifest.webmanifest`
 - Service worker PWA : `public/sw.js`
 - Icône Android : `android/app/src/main/res/drawable-nodpi/tournois_eps_icon.png`
 - Audit : `AUDIT-FONCTIONNALITES.md`
 - Architecture LAN : `RESEAU-LOCAL.md`
-- Contrat d’intégration : bridge `window.epsTournois` et échanges JSON versionnés
+- Contrat d’intégration : bridge `window.epsTournois` et enveloppe commune `eps.interop-envelope` documentée dans `docs/integration/CONTRAT-INTEROPERABILITE-EPS.md`
 
 ## Commandes de travail
 

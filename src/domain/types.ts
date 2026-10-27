@@ -4,6 +4,8 @@ export type Sport = "badminton" | "tennis-table" | "autre";
 
 export interface Student {
   id: string;
+  externalId?: string;
+  sourceApp?: string;
   name: string;
   gender?: "F" | "G" | "";
   level: number;
@@ -18,6 +20,8 @@ export interface Student {
 
 export interface SchoolClass {
   id: string;
+  externalId?: string;
+  sourceApp?: string;
   name: string;
   students: Student[];
   createdAt: string;

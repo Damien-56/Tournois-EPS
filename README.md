@@ -9,7 +9,7 @@ La PWA est la version de référence pour le PC, iOS et Android : elle peut êtr
 - **Autonome** : une tablette, un téléphone ou un ordinateur conserve les classes, élèves, matchs et classements dans son stockage local.
 - **PWA installable** : le même bundle web peut être ajouté à l’écran d’accueil iOS/Android ou installé comme application sur PC.
 - **Réseau local** : une tablette maître devient l’autorité de la séance. Les tablettes clientes rejoignent son adresse Wi‑Fi locale ; aucun serveur Internet n’est requis.
-- **Intégration EPS** : le pont `window.epsTournois` expose l’instantané JSON et les changements pour les autres applications de la galaxie EPS.
+- **Interopérabilité EPS** : le contrat JSON versionné `eps.interop-envelope` permet d’importer explicitement une classe ou un groupe depuis Gestion SNS, le tableau de bord EPS et les futures applications partenaires. Le bridge `window.epsTournois` reste disponible pour les intégrations contrôlées.
 - **Confort d’utilisation** : interface sombre et contrastée adaptée aux séances en salle et aux écrans de tablette.
 
 ## Fonctionnalités du MVP
@@ -28,6 +28,7 @@ La PWA est la version de référence pour le PC, iOS et Android : elle peut êtr
 - synchronisation maître/client sur Wi‑Fi local ;
 - file d’attente des actions clientes pendant une coupure Wi‑Fi ;
 - aucune publicité, facturation, abonnement, Firebase ou analytics commerciaux.
+- import explicite d’une classe ou d’un groupe depuis une URL HTTPS d’échange EPS versionnée ;
 
 ## Développement
 
@@ -47,6 +48,8 @@ La compilation Android nécessite un environnement Gradle/Android SDK installé.
 L’ordre de livraison recommandé est PWA d’abord, validation sur PC/iOS/Android ensuite, puis régénération de l’APK Android après chaque évolution web importante. L’APK de production signé sera produit en dernier, une fois le socle multiplateforme stabilisé.
 
 Le wrapper Gradle est inclus dans le dépôt afin de permettre une compilation reproductible avec `android\gradlew.bat assembleDebug`.
+
+Le contrat d’interopérabilité partagé avec les autres applications est décrit dans [docs/integration/CONTRAT-INTEROPERABILITE-EPS.md](docs/integration/CONTRAT-INTEROPERABILITE-EPS.md). Tournois EPS ne lit jamais le stockage local d’une autre application et ne transmet pas automatiquement les données personnelles.
 
 ## Licence de reconstruction
 

@@ -20,6 +20,7 @@ La version personnelle reprend le cœur pédagogique et le rend indépendant : s
 | Fonction | État |
 |---|---|
 | Mode autonome sur tablette/ordinateur | OK |
+| Interface sombre et contrastée | OK — contraste renforcé pour les séances en salle et les tablettes |
 | PWA installable PC/iOS/Android | Socle ajouté — manifeste, service worker et cache hors ligne à tester sur appareils réels |
 | Classes et élèves | OK — profils enrichis avec niveau, genre et statistiques |
 | Appel présent/absent/non-pratiquant | OK |

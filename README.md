@@ -10,6 +10,7 @@ La PWA est la version de référence pour le PC, iOS et Android : elle peut êtr
 - **PWA installable** : le même bundle web peut être ajouté à l’écran d’accueil iOS/Android ou installé comme application sur PC.
 - **Réseau local** : une tablette maître devient l’autorité de la séance. Les tablettes clientes rejoignent son adresse Wi‑Fi locale ; aucun serveur Internet n’est requis.
 - **Intégration EPS** : le pont `window.epsTournois` expose l’instantané JSON et les changements pour les autres applications de la galaxie EPS.
+- **Confort d’utilisation** : interface sombre et contrastée adaptée aux séances en salle et aux écrans de tablette.
 
 ## Fonctionnalités du MVP
 

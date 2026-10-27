@@ -59,3 +59,6 @@ demandés.
 Les prochaines applications partenaires doivent ajouter un petit adaptateur vers cette
 enveloppe, sans copier leur base de données dans GitHub. Une URL GitHub Pages, un fichier
 local ou un partage direct peuvent fournir l’échange ; aucun service commercial n’est requis.
+
+Le prompt prêt à copier pour l’adoption du contrat dans les autres projets est disponible
+dans [PROMPT-ADOPTION-GALAXIE-EPS.md](PROMPT-ADOPTION-GALAXIE-EPS.md).

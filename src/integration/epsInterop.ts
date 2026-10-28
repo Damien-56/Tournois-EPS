@@ -139,7 +139,7 @@ export function createRosterInteropEnvelope(payload: EpsRosterPayload): EpsInter
     }))
   };
   return createInteropEnvelope({
-    source: "tournois-eps",
+    source: "tournois-sport-individuel",
     resource: "sns-roster",
     action: "export",
     entityId: payload.groupId ? `sns-roster:${payload.groupId}` : undefined,
@@ -156,7 +156,7 @@ export function createInteropRequest(options: {
 }): EpsInteropEnvelope<Record<string, string>> {
   return createInteropEnvelope({
     type: "request",
-    source: options.source ?? "tournois-eps",
+    source: options.source ?? "tournois-sport-individuel",
     target: options.target,
     resource: options.resource,
     action: "get",

@@ -9,7 +9,7 @@ describe("Contrat d’interopérabilité EPS", () => {
       students: [{ id: "a1", name: "Camille", level: 4 }]
     });
     expect(envelope.eventId).toBe(envelope.id);
-    expect(envelope.sourceApp).toBe("tournois-eps");
+    expect(envelope.sourceApp).toBe("tournois-sport-individuel");
     expect(envelope.entityId).toBe("sns-roster:5e-a");
     expect(envelope.revision).toBe(1);
     expect(envelope.schemaVersion).toBe("2.0");

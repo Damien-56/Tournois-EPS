@@ -32,7 +32,12 @@ Les anciens créateurs de ressources de la PR ne sont pas réintroduits : ils pr
 - 16 tests automatisés réussis ;
 - vérification TypeScript réussie ;
 - build web de production réussi ;
+- synchronisation Capacitor réussie ;
+- compilation APK debug réussie (`fr.eps.tournois`, version `1.0.1`) ;
+- serveur de prévisualisation lancé avec succès sur `http://127.0.0.1:4173/` ;
 - données `localStorage` sauvegardées depuis le profil Chrome `Default` ;
 - aucun appareil Android détecté pour une sauvegarde de données installées.
+
+Le contrôle HTTP automatique de la prévisualisation n’a pas pu être exécuté depuis l’environnement d’exécution, qui interdit les connexions locales entre processus. Le démarrage du serveur lui-même est confirmé.
 
 Les artefacts `dist/` et Android restent générés localement et ne sont pas ajoutés à Git.

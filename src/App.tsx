@@ -41,7 +41,7 @@ function App() {
     integrationNotifyRef.current = installIntegrationBridge(() => storeRef.current, (snapshot) => setStore(snapshot));
     return () => {
       integrationNotifyRef.current = undefined;
-      delete window.epsTournois;
+      delete window.tournoisSportIndividuel;
     };
   }, []);
   useEffect(() => { integrationNotifyRef.current?.(store); }, [store]);
@@ -119,10 +119,10 @@ function App() {
       const envelope = await fetchInteropDocument(interopUrl);
       const roster = parseRosterEnvelope(envelope);
       if (!roster) throw new Error("Cet échange EPS ne contient pas de liste d’élèves exploitable.");
-      const importedClass = createClassFromRoster(roster, envelope.source.app);
+      const importedClass = createClassFromRoster(roster, envelope.sourceApp);
       setStore((current) => ({ ...current, classes: [...current.classes, importedClass] }));
       setInteropUrl("");
-      notify(`Classe importée depuis ${envelope.source.app}`);
+      notify(`Classe importée depuis ${envelope.sourceApp}`);
     } catch (error) { notify(error instanceof Error ? error.message : "Import EPS impossible"); }
   };
 

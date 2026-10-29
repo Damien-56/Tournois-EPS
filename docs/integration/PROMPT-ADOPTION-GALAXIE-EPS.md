@@ -6,7 +6,7 @@
 Tu développes une application de la galaxie EPS : [NOM DE L’APPLICATION].
 
 Mets en place l’interopérabilité avec les autres applications en adoptant le contrat
-commun `eps.interop-envelope` version 1, défini dans le projet Tournois EPS et dans
+commun `eps.interop-envelope` version 1, défini dans le projet Tournois sport individuel et dans
 Intervalle EPS.
 
 Contraintes impératives :
@@ -17,7 +17,8 @@ Contraintes impératives :
 - aucune donnée personnelle n’est envoyée automatiquement ; tout import, export ou
   chargement d’URL est déclenché et visible par l’utilisateur ;
 - les données échangées utilisent une enveloppe JSON versionnée :
-  `schema: "eps.interop-envelope"`, `version: 1` ;
+  `schema: "eps.interop-envelope"`, `version: 1`, avec `eventId`, `sourceApp`,
+  `entityId`, `revision`, `schemaVersion`, `createdAt` et `payload` ;
 - les échanges doivent rester indépendants du modèle interne de l’application.
 
 Travail demandé :
@@ -25,7 +26,8 @@ Travail demandé :
 2. Ajoute un adaptateur d’interopérabilité local, sans dépendance directe aux autres
    dépôts. Il doit créer, valider, importer et exporter des enveloppes EPS.
 3. Implémente au moins la ressource naturelle de cette application parmi :
-   `interval-session`, `cross-event`, `orientation-course`, `sns-roster`, `eps-context`.
+   la ressource naturelle de l’application, en utilisant les identifiants canoniques
+   `studentId`, `classId`, `groupId`, `sessionId`, `eventId`, `resultId` et `activityId`.
 4. Ajoute dans l’interface un import/export explicite par fichier JSON et, si pertinent,
    par URL HTTPS avec contrôle CORS et message d’erreur lisible.
 5. Ne remplace pas les formats locaux existants : ajoute un convertisseur ou un adaptateur.
@@ -70,16 +72,21 @@ Une rupture de structure impose :
 {
   "schema": "eps.interop-envelope",
   "version": 1,
-  "id": "eps-interop-unique",
-  "type": "data",
+  "eventId": "interop-event-unique",
+  "type": "event",
   "source": { "app": "nom-application", "version": "1.0.0" },
-  "target": { "app": "tournois-eps" },
-  "resource": "sns-roster",
-  "action": "export",
+  "sourceApp": "nom-application",
+  "target": { "app": "tableau-de-bord-eps" },
+  "resource": "individual-result",
+  "action": "upsert",
+  "entityId": "result-123",
+  "revision": 1,
+  "schemaVersion": "2.0",
   "createdAt": "2026-10-27T12:00:00.000Z",
   "payload": {}
 }
 ```
 
-Les identifiants d’applications réservés sont : `tournois-eps`, `intervalle-eps`,
+Les identifiants d’applications réservés sont : `tournois-sport-individuel`, `intervalle-eps`,
 `crossscan`, `course-orientation`, `gestion-sns` et `tableau-de-bord-eps`.
+L’ancien identifiant `tournois-eps` est uniquement accepté par les lecteurs legacy.

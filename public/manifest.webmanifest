@@ -4,6 +4,7 @@
   "description": "Gestion indépendante des tournois EPS.",
   "lang": "fr-FR",
   "dir": "ltr",
+  "id": "/Tournois-EPS/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

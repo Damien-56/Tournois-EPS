@@ -87,7 +87,7 @@ Branche de travail créée :
 
 `codex/tournois-sports-individuels-galaxie-eps`
 
-Elle part de `origin/main` sur `639f680`. Le commit de fusion locale sera ajouté après la dernière vérification de l’état de l’index. Aucune modification directe de `main` et aucun push forcé n’ont été effectués.
+Elle part de `origin/main` sur `639f680`. Commit local créé : `76855a8` (`feat: adopter le thème Galaxie EPS pour les sports individuels`). Aucune modification directe de `main` et aucun push forcé n’ont été effectués.
 
 ## Décision humaine restante
 

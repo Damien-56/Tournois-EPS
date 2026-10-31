@@ -9,7 +9,7 @@ La PWA est la version de référence pour le PC, iOS et Android : elle peut êtr
 - **Autonome** : une tablette, un téléphone ou un ordinateur conserve les classes, élèves, matchs et classements dans son stockage local.
 - **PWA installable** : le même bundle web peut être ajouté à l’écran d’accueil iOS/Android ou installé comme application sur PC.
 - **Réseau local** : une tablette maître devient l’autorité de la séance. Les tablettes clientes rejoignent son adresse Wi‑Fi locale ; aucun serveur Internet n’est requis.
-- **Interopérabilité EPS** : le contrat JSON versionné `eps.interop-envelope` permet d’importer explicitement une classe ou un groupe depuis Gestion SNS, le tableau de bord EPS et les futures applications partenaires. Le bridge `window.epsTournois` reste disponible pour les intégrations contrôlées.
+- **Interopérabilité EPS** : le contrat JSON versionné `eps.interop-envelope` utilise l’identifiant `tournois-sport-individuel`, les ressources `individual-tournament`, `individual-result` et `attendance`, ainsi que des identifiants stables pour les élèves, classes, séances et résultats. Le bridge `window.tournoisSportIndividuel` reste disponible pour les intégrations contrôlées.
 - **Confort d’utilisation** : interface sombre et contrastée adaptée aux séances en salle et aux écrans de tablette.
 
 ## Fonctionnalités du MVP
@@ -49,7 +49,7 @@ L’ordre de livraison recommandé est PWA d’abord, validation sur PC/iOS/Andr
 
 Le wrapper Gradle est inclus dans le dépôt afin de permettre une compilation reproductible avec `android\gradlew.bat assembleDebug`.
 
-Le contrat d’interopérabilité partagé avec les autres applications est décrit dans [docs/integration/CONTRAT-INTEROPERABILITE-EPS.md](docs/integration/CONTRAT-INTEROPERABILITE-EPS.md). Tournois EPS ne lit jamais le stockage local d’une autre application et ne transmet pas automatiquement les données personnelles.
+Le contrat d’interopérabilité partagé avec les autres applications est décrit dans [docs/integration/CONTRAT-INTEROPERABILITE-EPS.md](docs/integration/CONTRAT-INTEROPERABILITE-EPS.md). L’ancien identifiant `tournois-eps` est accepté uniquement lors de la lecture de données legacy. Tournois EPS ne lit jamais le stockage local d’une autre application et ne transmet pas automatiquement les données personnelles.
 
 ## Licence de reconstruction
 

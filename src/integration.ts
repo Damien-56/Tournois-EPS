@@ -6,9 +6,9 @@ export const EPS_TOURNOIS_BRIDGE_CAPABILITIES = ["snapshot.read", "snapshot.impo
 /**
  * Contrat d'intégration volontairement sans dépendance réseau.
  * Les autres applications EPS peuvent écouter les événements et demander
- * un export JSON via window.epsTournois.
+ * un export JSON via window.tournoisSportIndividuel.
  */
-export interface EpsTournoisBridge {
+export interface IndividualTournamentBridge {
   version: typeof EPS_TOURNOIS_BRIDGE_VERSION;
   capabilities: typeof EPS_TOURNOIS_BRIDGE_CAPABILITIES;
   getSnapshot: () => TournamentStore;
@@ -18,17 +18,17 @@ export interface EpsTournoisBridge {
 
 export function installIntegrationBridge(getSnapshot: () => TournamentStore, importSnapshot: (snapshot: TournamentStore) => void) {
   const listeners = new Set<(snapshot: TournamentStore) => void>();
-  const bridge: EpsTournoisBridge = {
+  const bridge: IndividualTournamentBridge = {
     version: EPS_TOURNOIS_BRIDGE_VERSION,
     capabilities: EPS_TOURNOIS_BRIDGE_CAPABILITIES,
     getSnapshot,
     importSnapshot,
     onChange: (listener) => { listeners.add(listener); return () => listeners.delete(listener); }
   };
-  window.epsTournois = bridge;
+  window.tournoisSportIndividuel = bridge;
   return (snapshot: TournamentStore) => listeners.forEach((listener) => listener(snapshot));
 }
 
 declare global {
-  interface Window { epsTournois?: EpsTournoisBridge; }
+  interface Window { tournoisSportIndividuel?: IndividualTournamentBridge; }
 }

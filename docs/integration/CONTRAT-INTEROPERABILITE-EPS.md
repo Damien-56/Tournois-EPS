@@ -1,27 +1,26 @@
-# Contrat d’interopérabilité EPS
+# Contrat d’interopérabilité — Tournois sport individuel
 
-Tournois EPS adopte le contrat commun de la galaxie EPS défini avec Intervalle EPS.
-Dans l’architecture de la galaxie, le Tableau de bord EPS est le consommateur central
-des résultats et la destination des présences consolidées. Les applications spécialisées
-ne consomment que les ressources dont elles ont besoin.
-Les applications restent autonomes, hors ligne et sans base centrale. Un échange est
-déclenché explicitement par l’utilisateur au moyen d’un fichier JSON ou d’une URL HTTPS.
-La disponibilité d’une application partenaire est toujours optionnelle : une application
-doit continuer à fonctionner seule si son fournisseur ou son destinataire n’est pas
-installé. Les échanges non remis peuvent être conservés dans une file locale.
+Tournois sport individuel adopte le contrat commun de la galaxie EPS défini avec
+Intervalle EPS. Les applications restent autonomes, hors ligne et sans base centrale.
+Un échange est déclenché explicitement par l’utilisateur au moyen d’un fichier JSON ou
+d’une URL HTTPS.
 
-## Enveloppe commune
+## Enveloppe commune canonique
 
 ```json
 {
   "schema": "eps.interop-envelope",
   "version": 1,
-  "id": "eps-interop-...",
-  "type": "data",
-  "source": { "app": "gestion-sns", "version": "1.0.0" },
-  "target": { "app": "tournois-eps" },
-  "resource": "sns-roster",
-  "action": "export",
+  "eventId": "interop-event-...",
+  "type": "event",
+  "source": { "app": "tournois-sport-individuel", "version": "0.1.0" },
+  "sourceApp": "tournois-sport-individuel",
+  "target": { "app": "tableau-de-bord-eps" },
+  "resource": "individual-result",
+  "action": "upsert",
+  "entityId": "result-123",
+  "revision": 1,
+  "schemaVersion": "2.0",
   "createdAt": "2026-10-27T12:00:00.000Z",
   "payload": {}
 }
@@ -33,38 +32,68 @@ Règles communes :
 - les données personnelles ne sont pas envoyées automatiquement ;
 - l’utilisateur déclenche l’import ou autorise l’URL distante ;
 - les champs inconnus sont ignorés et les versions majeures inconnues sont refusées ;
-- les données métier du producteur restent indépendantes du stockage interne.
+- les données métier du producteur restent indépendantes du stockage interne ;
+- une même enveloppe ne doit être appliquée qu’une fois et une révision ancienne ne
+  doit pas remplacer une révision plus récente.
 
-## Ressources utiles à Tournois EPS
+`tournois-eps` est uniquement un identifiant de lecture legacy. Il est converti en
+`tournois-sport-individuel` lors de la normalisation et n’est jamais émis par une
+nouvelle enveloppe.
 
-| Ressource | Producteur naturel | Usage |
+Une publication synchronisable utilise `action: "upsert"`. L’action `"export"` est
+réservée à une demande explicite de fichier JSON.
+
+## Correspondances de normalisation
+
+| Ancien nom ou forme | Nom canonique | Règle |
 |---|---|---|
-| `sns-roster` | Gestion SNS | créer une classe à partir d’un groupe sélectionné |
-| `eps-context` | Tableau de bord EPS | transmettre une classe ou un contexte de séance |
-| `cross-event` | CrossScan | future liaison entre un événement et un tournoi |
-| `orientation-course` | Course d’orientation | future liaison entre une course et un tournoi |
-| `interval-session` | Intervalle EPS | conserver le contexte temporel d’une séance |
+| `tournois-eps` | `tournois-sport-individuel` | accepté uniquement à la lecture |
+| `id` d’enveloppe | `eventId` | l’ancien champ est lu puis normalisé |
+| `source.app` | `source.app` et `sourceApp` | l’ancienne enveloppe est lue puis normalisée |
+| `targetApp` | `target.app` | l’ancien champ est lu puis normalisé |
+| `id` d’élève | `studentId` | conversion au niveau du payload roster |
+| `sns-roster` | ressource legacy lisible | aucune nouvelle émission |
+| tournoi individuel | `individual-tournament` | ressource d’émission |
+| résultat individuel | `individual-result` | ressource d’émission |
+| présence | `attendance` | ressource d’émission |
+| identifiant métier interne | `entityId` | identifiant stable à la frontière |
+| numéro de version implicite | `revision` | révision positive, rejouable sans doublon |
 
-Le premier adaptateur Tournois EPS accepte `sns-roster` et `eps-context` contenant :
+Les identifiants transversaux utilisés dans les payloads sont `studentId`, `classId`,
+`groupId`, `sessionId`, `eventId`, `resultId` et `activityId`. Les modèles métier
+internes conservent leurs noms historiques lorsque cela évite une régression.
+
+## Ressources
+
+| Ressource | Usage |
+|---|---|
+| `individual-tournament` | tournoi, matchs, règles et classement individuel |
+| `individual-result` | résultat, score, classement et statistiques individuelles |
+| `attendance` | présence d’un élève pour une séance |
+
+La ressource `sns-roster` reste acceptée uniquement en lecture pour les anciennes
+données. Le roster lu peut contenir `id` comme alias legacy de `studentId`.
+
+Exemple de payload normalisé :
 
 ```json
 {
-  "className": "5e A",
+  "classId": "class-5e-a",
   "students": [
-    { "id": "eleve-1", "name": "Camille", "level": 3, "status": "present" }
+    { "studentId": "student-1", "name": "Camille", "level": 3, "status": "present" }
   ]
 }
 ```
 
 Dans les réglages, l’enseignant colle une URL HTTPS publiée par une application EPS.
-Tournois EPS vérifie l’enveloppe, n’accepte que le contrat versionné, puis crée une
-nouvelle classe locale après validation. Le fichier JSON de sauvegarde Tournois EPS et
-le bridge `window.epsTournois` restent disponibles pour les échanges complets explicitement
-demandés.
+L’application vérifie l’enveloppe versionnée, normalise les alias legacy, puis crée une
+nouvelle classe locale après validation. Cette normalisation ne renomme pas les modèles
+métier internes ni le stockage local existant.
 
 Les prochaines applications partenaires doivent ajouter un petit adaptateur vers cette
 enveloppe, sans copier leur base de données dans GitHub. Une URL GitHub Pages, un fichier
-local ou un partage direct peuvent fournir l’échange ; aucun service commercial n’est requis.
+local ou un partage direct peuvent fournir l’échange ; aucun service commercial n’est
+requis.
 
 Le prompt prêt à copier pour l’adoption du contrat dans les autres projets est disponible
 dans [PROMPT-ADOPTION-GALAXIE-EPS.md](PROMPT-ADOPTION-GALAXIE-EPS.md).

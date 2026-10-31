@@ -7,7 +7,7 @@ Périmètre : uniquement `D:\Documents local\ChatGPT\récupération APK - REA\to
 
 **PARTIELLEMENT VALIDÉE**.
 
-La fusion locale est réalisée et vérifiée par les tests, le build de production, la synchronisation Capacitor Android et un test HTTP du paquet de production. La publication GitHub et la mise à jour de l’application réellement installée restent volontairement en attente d’autorisation et de vérification de l’installeur/appareil.
+La fusion est publiée sur GitHub et vérifiée par les tests, le build de production, la synchronisation Capacitor Android et les réponses HTTP de GitHub Pages. L’installation Android sur un appareil physique n’a pas été exécutée dans cet environnement ; elle reste le seul contrôle pratique à faire si une APK installée est requise.
 
 ## État initial local
 
@@ -60,7 +60,7 @@ La branche de travail a été créée à partir de ce `origin/main` à jour. `ma
 ### Écarté ou non publié
 
 - Aucun code métier de tournoi n’a été supprimé.
-- Les fichiers locaux `public/generated-icons/` et `public/icon.ico` restent présents et sauvegardés, mais ne sont pas ajoutés à Git car ils sont générés ou non nécessaires au manifeste publié.
+- Les fichiers locaux `public/generated-icons/` et `public/icon.ico` ont été archivés puis retirés du dossier de travail car ils sont générés ou non nécessaires au manifeste publié.
 - `public/icon.png` local est conservé dans la branche comme compatibilité avec l’état local antérieur ; le manifeste et le service worker utilisent les icônes canoniques publiées.
 
 ### Conflits résolus
@@ -74,7 +74,7 @@ La branche de travail a été créée à partir de ce `origin/main` à jour. `ma
 - Application React + TypeScript + Vite.
 - Persistance : stockage navigateur local, export/import JSON existant conservé.
 - Mobile : Capacitor Android.
-- Tests automatisés : **14 tests passés** dans 5 fichiers.
+- Tests automatisés : **19 tests passés** dans 5 fichiers.
 - Vérification TypeScript et build de production : **réussis**.
 - Synchronisation Capacitor Android : **réussie**.
 - Test HTTP du paquet de production : `/`, manifeste, bootstrap et feuille de thème répondent **200**.
@@ -87,10 +87,9 @@ Branche de travail créée :
 
 `codex/tournois-sports-individuels-galaxie-eps`
 
-Elle part de `origin/main` sur `639f680`. Commit local créé : `76855a8` (`feat: adopter le thème Galaxie EPS pour les sports individuels`). Aucune modification directe de `main` et aucun push forcé n’ont été effectués.
+Elle partait de `origin/main` sur `639f680`. La PR #2 a fusionné l’interopérabilité dans `main` sur `155769c`, puis la PR #3 a fusionné le thème sur `main` sur `0dcc11a`. Le commit de thème final est `640eba4` et le rapport initial est `9ea1212`. Aucun push forcé n’a été effectué. Le dépôt local est maintenant sur `main` aligné avec `origin/main` sur `0dcc11a`.
 
 ## Décision humaine restante
 
-1. Autoriser ou non le push de cette branche et la préparation d’une Pull Request vers `main`.
-2. Après validation GitHub, vérifier l’installation réelle Android/PWA et seulement alors mettre à jour l’application installée.
-3. Décider si les copies locales non suivies `public/generated-icons/` et `public/icon.ico` doivent être conservées sur le poste ou simplement archivées dans la sauvegarde. Elles ne contiennent pas les données de tournois.
+1. Vérifier éventuellement l’installation Android sur un appareil réel ; aucune donnée utilisateur n’a été supprimée.
+2. Les artefacts générés retirés du projet sont récupérables ici : `C:\Users\guill\.codex\visualizations\2026\10\29\01a18819-6372-7943-bb85-2341d6fe7408\pre-galaxie-theme-20261031-165038\local-generated-artifacts-20261031`.

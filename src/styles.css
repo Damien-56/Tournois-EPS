@@ -100,6 +100,18 @@ nav button:hover, .button-like:hover { color: var(--eps-text); background: var(-
 .topbar .theme-selector { display: none; }
 .sidebar-theme { margin-top: 20px; }
 .sidebar-theme .theme-selector { display: grid; grid-template-columns: 1fr; }
+.pwa-status { --pwa-accent: var(--eps-zone-turquoise); display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 9px 12px; color: var(--eps-text); background: color-mix(in srgb, var(--pwa-accent) 8%, var(--eps-surface)); border: 1px solid var(--eps-border); border-left: 4px solid var(--pwa-accent); border-radius: 12px; font-size: 11px; }
+.pwa-status.offline { --pwa-accent: var(--eps-zone-saffron); }
+.pwa-status.has-update { --pwa-accent: var(--eps-zone-indigo); }
+.pwa-status-line, .pwa-status-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pwa-status-line strong { color: var(--pwa-accent); }
+.pwa-connection, .pwa-standalone { color: var(--eps-muted); }
+.pwa-connection span { color: var(--pwa-accent); }
+.pwa-update-message { color: var(--eps-text); font-weight: 800; }
+.pwa-status-actions button, .pwa-status-actions a { min-height: 32px; padding: 6px 9px; color: var(--eps-text); background: var(--eps-surface); border: 1px solid var(--eps-border); border-radius: 8px; font-size: 11px; font-weight: 800; text-decoration: none; }
+.pwa-status-actions .pwa-update-button { color: var(--eps-on-primary); background: var(--pwa-accent); border-color: var(--pwa-accent); }
+.pwa-status-actions .pwa-install-button { color: var(--eps-on-success); background: var(--eps-success); border-color: var(--eps-on-success); }
+.pwa-status-actions button:hover, .pwa-status-actions a:hover { border-color: var(--pwa-accent); }
 
 .hero { display: flex; align-items: center; justify-content: space-between; margin-inline: -28px; padding: 68px 28px 55px; background: linear-gradient(125deg, var(--eps-hero-start), var(--eps-hero-end)); border-bottom: 1px solid var(--eps-border); border-radius: 0 0 28px 28px; }
 .eyebrow { margin: 0 0 8px; color: var(--eps-primary); font-size: 10px; font-weight: 900; letter-spacing: .15em; }
@@ -318,6 +330,7 @@ main:has(.sport-picker) .content-grid > .panel:nth-child(2) { --zone-accent: var
   .topbar { min-height: 58px; }
   .topbar .brand { display: flex; }
   .home-grid, .content-grid, .tournament-grid, .lan-panel { grid-template-columns: 1fr; }
+  .pwa-status { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 700px) {
@@ -346,7 +359,7 @@ main:has(.sport-picker) .content-grid > .panel:nth-child(2) { --zone-accent: var
 @media print {
   :root { color-scheme: light; }
   body { color: #17212b; background: #fff; }
-  .app-sidebar, .topbar, .theme-selector, .subbar-action, .heading-actions, .match-form, .match-history { display: none !important; }
+  .app-sidebar, .topbar, .pwa-status, .theme-selector, .subbar-action, .heading-actions, .match-form, .match-history { display: none !important; }
   .app-shell { margin: 0; padding: 0; }
   .panel, .lan-panel, .security-panel, .tournament-settings { color: #17212b; background: #fff; border-color: #777; box-shadow: none; break-inside: avoid; }
   .hero h1, .page-heading h1, .section-title h2, .panel strong { color: #17212b; }

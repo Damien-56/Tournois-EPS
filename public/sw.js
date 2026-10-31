@@ -1,5 +1,16 @@
-const CACHE_NAME = "tournois-eps-pwa-v1";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.png"];
+const CACHE_NAME = "tournois-eps-pwa-v2-20261031";
+const SHELL = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./theme/eps-theme-boot.js",
+  "./theme/eps-theme.css",
+  "./theme/eps-theme-controls.js",
+  "./theme/tokens.json",
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -9,6 +9,7 @@ import { LanQrCode } from "./LanQrCode";
 import { getPouleCourt, isAtpMatchAllowed, splitIntoGroups } from "./domain/rules";
 import { getClassPerformance, getTargetScore, recalculateClassStats } from "./domain/stats";
 import { isValidMatchResult, replaceTournamentMatch } from "./domain/matches";
+import { useEpsTheme } from "./theme";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -134,11 +135,11 @@ function App() {
     <Header onMenu={openSettings} />
     <section className="hero"><div><p className="eyebrow">ESPACE D’USAGE</p><h1>Mes séances EPS</h1><p className="hero-copy">Ouvrez une classe, préparez l’appel et lancez vos tournois. Les réglages de l’application sont accessibles depuis le menu.</p></div><div className="hero-mark">🏆</div></section>
     <div className="grid home-grid">
-      <section className="panel"><div className="section-title"><div><p className="eyebrow">ESPACE ENSEIGNANT</p><h2>Mes classes</h2></div><span className="count-pill">{store.classes.length}</span></div>
+      <section className="panel" data-eps-color="olive"><div className="section-title"><div><p className="eyebrow">ESPACE ENSEIGNANT</p><h2>Mes classes</h2></div><span className="count-pill">{store.classes.length}</span></div>
         {!store.classes.length && <div className="empty"><strong>Aucune classe prête pour une séance.</strong><span>Ouvrez les réglages pour créer une classe ou charger l’exemple EPS.</span><button className="primary" onClick={openSettings}>Ouvrir les réglages</button></div>}
         <div className="class-list">{store.classes.map((item) => <button className="class-card" key={item.id} onClick={() => openClass(item.id, "usage")}><span className="class-icon">{item.name.slice(0, 1).toUpperCase()}</span><span><strong>{item.name}</strong><small>{item.students.length} élève(s) · {store.tournaments.filter((t) => t.classId === item.id).length} tournoi(s) · Ouvrir la séance</small></span><span className="arrow">›</span></button>)}</div>
       </section>
-      <section className="panel guide-panel"><div className="section-title"><div><p className="eyebrow">POUR COMMENCER</p><h2>Trois modes de tournoi</h2></div></div><ModeCard mode="atp" title="ATP" text="Défis par proximité de classement, points et badges." /><ModeCard mode="classic" title="Classique" text="Championnat toutes rondes, idéal pour les sports collectifs." /><ModeCard mode="poule" title="Poules" text="Répartition par terrains, matchs et montées/descentes." /><div className="offline-note">✓ 100 % local · sans abonnement · sans publicité</div></section>
+      <section className="panel guide-panel" data-eps-color="turquoise"><div className="section-title"><div><p className="eyebrow">POUR COMMENCER</p><h2>Trois modes de tournoi</h2></div></div><ModeCard mode="atp" title="ATP" text="Défis par proximité de classement, points et badges." /><ModeCard mode="classic" title="Classique" text="Championnat toutes rondes, idéal pour les sports collectifs." /><ModeCard mode="poule" title="Poules" text="Répartition par terrains, matchs et montées/descentes." /><div className="offline-note">✓ 100 % local · sans abonnement · sans publicité</div></section>
     </div>
     {message && <div className="toast">{message}</div>}
   </main>;
@@ -188,7 +189,7 @@ function deleteMatchAction(store: TournamentStore, payload: Record<string, unkno
 }
 
 function LanPanel({ role, info, peers, joinUrl, error, nativeAvailable, onDiscover, onStart, onStop, onJoin, onJoinUrlChange }: { role: LanRole; info?: LanInfo; peers: LanPeer[]; joinUrl: string; error: string; nativeAvailable: boolean; onDiscover: () => void; onStart: () => void; onStop: () => void; onJoin: () => void; onJoinUrlChange: (value: string) => void }) {
-  return <section className="lan-panel"><div className="lan-copy"><p className="eyebrow">MODE MULTI-TABLETTES</p><h2>Réseau local EPS</h2><p>Une tablette maître conserve les données et les autres tablettes se connectent directement sur le Wi‑Fi de la séance.</p><div className="lan-badges"><span className={role === "master" ? "active" : ""}>● Maître</span><span className={role === "client" ? "active" : ""}>● Cliente</span><span>● Sans Internet</span></div></div><div className="lan-actions">{role === "master" && info ? <div className="lan-share"><LanQrCode value={info.joinUrl} /><div><div className="lan-address"><small>Adresse à communiquer ou scanner</small><strong>{info.joinUrl}</strong></div><button className="secondary" onClick={onStop}>Arrêter le réseau</button></div></div> : <><button className="primary" onClick={onStart}>Démarrer comme maître</button><div className="join-row"><input value={joinUrl} onChange={(event) => onJoinUrlChange(event.target.value)} placeholder="http://192.168.x.x:8765" /><button className="secondary" onClick={onJoin}>Rejoindre</button></div><button className="discover-button" onClick={onDiscover} disabled={!nativeAvailable}>⌁ Rechercher une tablette maître</button>{!!peers.length && <div className="lan-peers">{peers.map((peer) => <button className="lan-peer" key={peer.joinUrl} onClick={() => onJoinUrlChange(peer.joinUrl)}><strong>{peer.name}</strong><small>{peer.address}:{peer.port}</small></button>)}</div>}<small className="lan-hint">{nativeAvailable ? "Recherche automatique disponible sur Android." : "Le serveur maître sera fourni par la version Android."}</small></>}{error && <span className="lan-error">{error}</span>}</div></section>;
+  return <section className="lan-panel" data-eps-color="tangerine"><div className="lan-copy"><p className="eyebrow">MODE MULTI-TABLETTES</p><h2>Réseau local EPS</h2><p>Une tablette maître conserve les données et les autres tablettes se connectent directement sur le Wi‑Fi de la séance.</p><div className="lan-badges"><span className={role === "master" ? "active" : ""}>● Maître</span><span className={role === "client" ? "active" : ""}>● Cliente</span><span>● Sans Internet</span></div></div><div className="lan-actions">{role === "master" && info ? <div className="lan-share"><LanQrCode value={info.joinUrl} /><div><div className="lan-address"><small>Adresse à communiquer ou scanner</small><strong>{info.joinUrl}</strong></div><button className="secondary" onClick={onStop}>Arrêter le réseau</button></div></div> : <><button className="primary" onClick={onStart}>Démarrer comme maître</button><div className="join-row"><input value={joinUrl} onChange={(event) => onJoinUrlChange(event.target.value)} placeholder="http://192.168.x.x:8765" /><button className="secondary" onClick={onJoin}>Rejoindre</button></div><button className="discover-button" onClick={onDiscover} disabled={!nativeAvailable}>⌁ Rechercher une tablette maître</button>{!!peers.length && <div className="lan-peers">{peers.map((peer) => <button className="lan-peer" key={peer.joinUrl} onClick={() => onJoinUrlChange(peer.joinUrl)}><strong>{peer.name}</strong><small>{peer.address}:{peer.port}</small></button>)}</div>}<small className="lan-hint">{nativeAvailable ? "Recherche automatique disponible sur Android." : "Le serveur maître sera fourni par la version Android."}</small></>}{error && <span className="lan-error">{error}</span>}</div></section>;
 }
 
 function SettingsScreen({ classes, tournaments, newClassName, setNewClassName, createClass, seedDemo, onBack, onOpenClass, onExport, onImport, interopUrl, onInteropUrlChange, onImportInterop, message, role, info, peers, joinUrl, error, nativeAvailable, onDiscover, onStart, onStop, onJoin, onJoinUrlChange }: { classes: SchoolClass[]; tournaments: Tournament[]; newClassName: string; setNewClassName: (value: string) => void; createClass: () => void; seedDemo: () => void; onBack: () => void; onOpenClass: (id: string) => void; onExport: () => void; onImport: (file: File) => void; interopUrl: string; onInteropUrlChange: (value: string) => void; onImportInterop: () => void; message: string; role: LanRole; info?: LanInfo; peers: LanPeer[]; joinUrl: string; error: string; nativeAvailable: boolean; onDiscover: () => void; onStart: () => void; onStop: () => void; onJoin: () => void; onJoinUrlChange: (value: string) => void }) {
@@ -205,8 +206,26 @@ function SettingsScreen({ classes, tournaments, newClassName, setNewClassName, c
   </main>;
 }
 
-function Header({ onMenu, menuLabel = "⚙ Réglages" }: { onMenu: () => void; menuLabel?: string }) {
-  return <header className="topbar"><div className="brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div><nav><button className="menu-button" onClick={onMenu}>{menuLabel}</button></nav></header>;
+function ThemeSelector({ compact = false }: { compact?: boolean }) {
+  const { mode, persistent, setTheme } = useEpsTheme();
+  return <div className={`theme-selector${compact ? " compact" : ""}`} role="group" aria-label="Thème de l’interface">
+    <span className="theme-selector-label">Thème</span>
+    <button type="button" aria-pressed={mode === "light"} onClick={() => setTheme("light")}>☀ Clair</button>
+    <button type="button" aria-pressed={mode === "dark"} onClick={() => setTheme("dark")}>◐ Sombre</button>
+    {!persistent && <p className="theme-selector-status">Choix appliqué pour cette session ; la mémorisation est indisponible.</p>}
+  </div>;
+}
+
+function Header({ onMenu, onHome, menuLabel = "⚙ Réglages" }: { onMenu: () => void; onHome?: () => void; menuLabel?: string }) {
+  return <><aside className="app-sidebar" aria-label="Navigation principale">
+    <div className="sidebar-brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div>
+    <nav className="sidebar-nav">
+      {onHome && <button type="button" onClick={onHome}>⌂ Accueil</button>}
+      <button type="button" onClick={onMenu}>{menuLabel}</button>
+    </nav>
+    <div className="sidebar-theme"><ThemeSelector /></div>
+    <p className="sidebar-note">Sports individuels · données locales</p>
+  </aside><header className="topbar"><div className="brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div><nav><ThemeSelector compact /><button className="menu-button" onClick={onMenu}>{menuLabel}</button></nav></header></>;
 }
 
 function ModeCard({ mode, title, text }: { mode: TournamentMode; title: string; text: string }) {

@@ -93,3 +93,23 @@ Elle partait de `origin/main` sur `639f680`. La PR #2 a fusionné l’interopér
 
 1. Vérifier éventuellement l’installation Android sur un appareil réel ; aucune donnée utilisateur n’a été supprimée.
 2. Les artefacts générés retirés du projet sont récupérables ici : `C:\Users\guill\.codex\visualizations\2026\10\29\01a18819-6372-7943-bb85-2341d6fe7408\pre-galaxie-theme-20261031-165038\local-generated-artifacts-20261031`.
+
+## Extension PWA standalone
+
+- Manifest : `public/manifest.webmanifest`.
+- Identité : `/Tournois-EPS/?v=20261031`.
+- URL de démarrage : `./?pwa_version=20261031`.
+- Mode d’ouverture : `standalone`, sans `fullscreen`.
+- Cache service worker : `tournois-eps-pwa-v3-20261031`.
+- Nettoyage : seuls les caches préfixés `tournois-eps-pwa-` sont supprimés.
+- Mise à jour : une nouvelle installation du service worker affiche « Une mise à jour est disponible » ; le bouton « Mettre à jour » envoie `SKIP_WAITING`, puis `controllerchange` recharge la page.
+- Interface : version visible, état en ligne/hors connexion, proposition d’installation quand le navigateur la fournit et lien de secours « Ouvrir la version Web ».
+- Stockage : aucune suppression de `localStorage`, d’IndexedDB ou de fichier utilisateur ; la clé métier reste `tournois-eps.local.v1` et la préférence de thème reste indépendante.
+
+Lien Web et installation PWA :
+
+`https://damien-56.github.io/Tournois-EPS/`
+
+Sur Chrome ou Edge, ouvrir ce lien puis utiliser l’icône d’installation dans la barre d’adresse ou le menu « Installer Tournois EPS ». Sur Android Chrome, utiliser « Ajouter à l’écran d’accueil » ou « Installer l’application ». L’application doit ensuite s’ouvrir dans une fenêtre standalone.
+
+Vérifications réalisées : 22 tests automatisés, build TypeScript/Vite, synchronisation Capacitor Android et contrôles HTTP 200 sur l’accueil, le manifeste, le service worker, les icônes 192/512 et les ressources du thème. Les tests visuels desktop/mobile, l’installation réelle Chrome/Edge/Android et la vérification physique de l’absence de barre d’adresse restent à faire manuellement sur les appareils concernés.

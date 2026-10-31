@@ -17,6 +17,8 @@ describe("eps.theme 1.0.0 local contract", () => {
     const tokens = read("public/theme/tokens.json");
     expect(boot).toContain("var key = 'eps.theme.v1.' + app;");
     expect(boot).toContain("var app = 'tournois-sports-individuels';");
+    expect(boot).toContain("localStorage.getItem(key)");
+    expect(boot).toContain("localStorage.setItem(key, value)");
     expect(tokens).toContain('"applicationId": "tournois-sports-individuels"');
     expect(tokens).toContain('"themeModes": ["light", "dark"]');
     expect(`${boot}\n${tokens}`).not.toMatch(/crossscan|CrossScan|PWA-balises/i);
@@ -24,7 +26,7 @@ describe("eps.theme 1.0.0 local contract", () => {
 
   it("ships all runtime theme files through the PWA shell", () => {
     const serviceWorker = read("public/sw.js");
-    expect(serviceWorker).toContain("tournois-eps-pwa-v2");
+    expect(serviceWorker).toContain("tournois-eps-pwa-v3");
     expect(serviceWorker).toContain("./theme/eps-theme-boot.js");
     expect(serviceWorker).toContain("./theme/eps-theme.css");
     expect(serviceWorker).toContain("./theme/tokens.json");

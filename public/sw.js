@@ -1,4 +1,5 @@
-const CACHE_NAME = "tournois-eps-pwa-v2-20261031";
+const CACHE_PREFIX = "tournois-eps-pwa-";
+const CACHE_NAME = "tournois-eps-pwa-v3-20261031";
 const SHELL = [
   "./",
   "./index.html",
@@ -23,9 +24,17 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      ))
       .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {

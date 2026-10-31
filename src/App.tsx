@@ -10,6 +10,7 @@ import { getPouleCourt, isAtpMatchAllowed, splitIntoGroups } from "./domain/rule
 import { getClassPerformance, getTargetScore, recalculateClassStats } from "./domain/stats";
 import { isValidMatchResult, replaceTournamentMatch } from "./domain/matches";
 import { useEpsTheme } from "./theme";
+import { applyPwaUpdate, installPwa, PWA_VERSION_LABEL, usePwaStatus } from "./pwa";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -216,6 +217,22 @@ function ThemeSelector({ compact = false }: { compact?: boolean }) {
   </div>;
 }
 
+function PwaStatusPanel() {
+  const status = usePwaStatus();
+  return <section className={`pwa-status${status.offline ? " offline" : ""}${status.updateAvailable ? " has-update" : ""}`} aria-live="polite">
+    <div className="pwa-status-line">
+      <strong>{PWA_VERSION_LABEL}</strong>
+      <span className="pwa-connection"><span aria-hidden="true">●</span> {status.offline ? "Hors connexion" : "En ligne"}</span>
+      {status.standalone && <span className="pwa-standalone">Fenêtre autonome</span>}
+    </div>
+    <div className="pwa-status-actions">
+      {status.updateAvailable && <><span className="pwa-update-message">Une mise à jour est disponible.</span><button type="button" className="pwa-update-button" onClick={() => applyPwaUpdate()}>Mettre à jour</button></>}
+      {status.canInstall && <button type="button" className="pwa-install-button" onClick={() => void installPwa()}>Installer l’application</button>}
+      <a href={window.location.href} target="_blank" rel="noreferrer">Ouvrir la version Web</a>
+    </div>
+  </section>;
+}
+
 function Header({ onMenu, onHome, menuLabel = "⚙ Réglages" }: { onMenu: () => void; onHome?: () => void; menuLabel?: string }) {
   return <><aside className="app-sidebar" aria-label="Navigation principale">
     <div className="sidebar-brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div>
@@ -225,7 +242,7 @@ function Header({ onMenu, onHome, menuLabel = "⚙ Réglages" }: { onMenu: () =>
     </nav>
     <div className="sidebar-theme"><ThemeSelector /></div>
     <p className="sidebar-note">Sports individuels · données locales</p>
-  </aside><header className="topbar"><div className="brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div><nav><ThemeSelector compact /><button className="menu-button" onClick={onMenu}>{menuLabel}</button></nav></header></>;
+  </aside><header className="topbar"><div className="brand"><span className="brand-dot">✦</span><span>Tournois <b>EPS</b></span></div><nav><ThemeSelector compact /><button className="menu-button" onClick={onMenu}>{menuLabel}</button></nav></header><PwaStatusPanel /></>;
 }
 
 function ModeCard({ mode, title, text }: { mode: TournamentMode; title: string; text: string }) {

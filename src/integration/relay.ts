@@ -1,9 +1,11 @@
-import type { Match, Student, Tournament, TournamentStore } from "../domain/types";
+import type { Match, SchoolClass, Student, Tournament, TournamentStore } from "../domain/types";
 import {
   createAttendanceEnvelope,
   createIndividualResultEnvelope,
   createIndividualTournamentEnvelope,
+  createStudentClassRosterEnvelope,
   type EpsInteropEnvelope,
+  type StudentClassRosterPayload,
 } from "./epsInterop";
 import { isValidMatchResult } from "../domain/matches";
 
@@ -13,6 +15,7 @@ const RELAY_URL_KEY = "eps-relay-url";
 const OUTBOX_KEY = "tournois-sport-individuel-relay-outbox-v1";
 const SENT_KEY = "tournois-sport-individuel-relay-sent-v1";
 const ATTENDANCE_KEY = "tournois-sport-individuel-relay-attendance-v1";
+const ROSTER_CURSOR_KEY = "tournois-sport-individuel-relay-roster-cursor-v1";
 
 type RelayEnvelope = EpsInteropEnvelope;
 type QueuedEnvelope = { envelope: RelayEnvelope; queuedAt: string };
@@ -71,7 +74,7 @@ async function register(): Promise<void> {
     body: JSON.stringify({
       appId: APP_ID,
       version: "0.1.0",
-      capabilities: ["individual-tournament", "individual-result", "attendance"],
+      capabilities: ["student-class-roster", "individual-tournament", "individual-result", "attendance"],
       registeredAt: new Date().toISOString(),
     }),
   });
@@ -103,6 +106,35 @@ async function flushOutbox(): Promise<void> {
 
 function studentPayload(student: Student, classId: string): Record<string, unknown> {
   return { studentId: student.id, name: student.name, classId, status: student.status };
+}
+
+function splitStudentName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts.shift() ?? name.trim(), lastName: parts.join(" ") };
+}
+
+function studentClassRosterPayload(store: TournamentStore): StudentClassRosterPayload {
+  const classes = store.classes.map((schoolClass) => ({
+    classId: schoolClass.id,
+    name: schoolClass.name,
+    students: schoolClass.students.length,
+  }));
+  const students = store.classes.flatMap((schoolClass) => schoolClass.students.map((student) => ({
+    studentId: student.id,
+    ...splitStudentName(student.name),
+    classId: schoolClass.id,
+    status: student.status,
+  })));
+  return {
+    rosterId: `tournois-sport-individuel:${store.version}`,
+    classes,
+    students,
+  };
+}
+
+function studentClassRosterEnvelope(store: TournamentStore): EpsInteropEnvelope<StudentClassRosterPayload> {
+  const payload = studentClassRosterPayload(store);
+  return createStudentClassRosterEnvelope({ eventId: payload.rosterId, entityId: payload.rosterId, payload });
 }
 
 function tournamentPayload(store: TournamentStore, tournament: Tournament): Record<string, unknown> | null {
@@ -147,6 +179,7 @@ function attendanceState(classId: string, student: Student, sessionId: string): 
 
 export async function publishIndividualStore(store: TournamentStore): Promise<void> {
   await flushOutbox().catch(() => undefined);
+  if (store.classes.length) await publish(studentClassRosterEnvelope(store));
   for (const tournament of store.tournaments) {
     const payload = tournamentPayload(store, tournament);
     if (!payload) continue;
@@ -196,4 +229,73 @@ export async function publishIndividualStore(store: TournamentStore): Promise<vo
       }));
     }
   }
+}
+
+function rosterCursor(): number {
+  const value = Number(storage()?.getItem(ROSTER_CURSOR_KEY) ?? "0");
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+async function relayJson(path: string): Promise<{ records?: Array<{ sequence: number; envelope?: RelayEnvelope }>; nextCursor?: number }> {
+  const response = await fetch(`${relayUrl()}${path}`, { headers: { "content-type": "application/json" } });
+  if (!response.ok) throw new Error(`Relais EPS HTTP ${response.status}`);
+  return response.json() as Promise<{ records?: Array<{ sequence: number; envelope?: RelayEnvelope }>; nextCursor?: number }>;
+}
+
+export function mergeStudentClassRoster(store: TournamentStore, payload: StudentClassRosterPayload, sourceApp: string): TournamentStore {
+  const classes = store.classes.map((schoolClass) => ({ ...schoolClass, students: schoolClass.students.map((student) => ({ ...student })) }));
+  const source = sourceApp || "unknown-source";
+  const classByExternalId = new Map<string, SchoolClass>();
+  for (const item of classes) {
+    if (item.sourceApp === source && item.externalId) classByExternalId.set(item.externalId, item);
+  }
+  for (const item of payload.classes) {
+    const existing = classByExternalId.get(item.classId);
+    if (existing) {
+      existing.name = item.name;
+      continue;
+    }
+    const created: SchoolClass = { id: `interop-${source}-${item.classId}`, externalId: item.classId, sourceApp: source, name: item.name, createdAt: new Date().toISOString(), students: [] };
+    classes.push(created);
+    classByExternalId.set(item.classId, created);
+  }
+  const classByStudent = new Map<string, SchoolClass>();
+  for (const schoolClass of classes) for (const student of schoolClass.students) if (student.sourceApp === source && student.externalId) classByStudent.set(student.externalId, schoolClass);
+  for (const item of payload.students) {
+    const targetClass = item.classId ? classByExternalId.get(item.classId) : undefined;
+    if (!targetClass) continue;
+    const previousClass = classByStudent.get(item.studentId);
+    const existing = [...classes].flatMap((schoolClass) => schoolClass.students).find((student) => student.sourceApp === source && student.externalId === item.studentId);
+    const name = `${item.firstName} ${item.lastName}`.trim();
+    if (existing) {
+      existing.name = name;
+      if (item.status) existing.status = item.status;
+      if (previousClass && previousClass.id !== targetClass.id) previousClass.students = previousClass.students.filter((student) => student.id !== existing.id);
+      if (!targetClass.students.some((student) => student.id === existing.id)) targetClass.students.push(existing);
+      continue;
+    }
+    targetClass.students.push({ id: `interop-${source}-${item.studentId}`, externalId: item.studentId, sourceApp: source, name, level: 3, status: item.status ?? "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
+    classByStudent.set(item.studentId, targetClass);
+  }
+  return { ...store, classes };
+}
+
+export function startIndividualRosterRelay(onRoster: (payload: StudentClassRosterPayload, sourceApp: string) => void): () => void {
+  let cancelled = false;
+  const pull = async () => {
+    try {
+      await register();
+      const cursor = rosterCursor();
+      const result = await relayJson(`/events?appId=${encodeURIComponent(APP_ID)}&after=${cursor}`);
+      for (const record of result.records ?? []) {
+        const envelope = record.envelope;
+        if (envelope?.resource === "student-class-roster" && envelope.sourceApp !== APP_ID) onRoster(envelope.payload as StudentClassRosterPayload, envelope.sourceApp);
+        storage()?.setItem(ROSTER_CURSOR_KEY, String(record.sequence));
+      }
+      if (typeof result.nextCursor === "number" && result.nextCursor > cursor) storage()?.setItem(ROSTER_CURSOR_KEY, String(result.nextCursor));
+    } catch { /* The relay is optional and retried on the next cycle. */ }
+  };
+  void pull();
+  const timer = window.setInterval(() => void pull(), 5000);
+  return () => window.clearInterval(timer);
 }

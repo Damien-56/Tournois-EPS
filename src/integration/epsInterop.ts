@@ -23,7 +23,7 @@ export type CanonicalEpsApplicationId =
 /** L’ancien identifiant est accepté par le lecteur, jamais utilisé par les créateurs. */
 export type EpsApplicationId = CanonicalEpsApplicationId | typeof LEGACY_APPLICATION_ID;
 
-export type CanonicalEpsInteropResource = "individual-tournament" | "individual-result" | "attendance";
+export type CanonicalEpsInteropResource = "student-class-roster" | "individual-tournament" | "individual-result" | "attendance";
 export type LegacyEpsInteropResource = "interval-session" | "cross-event" | "orientation-course" | "sns-roster" | "eps-context";
 export type EpsInteropResource = CanonicalEpsInteropResource | LegacyEpsInteropResource;
 export type CanonicalEpsInteropAction = "upsert" | "export";
@@ -95,6 +95,13 @@ export interface AttendancePayload {
   sessionId: string;
   status: Student["status"];
   changedAt: string;
+  [key: string]: unknown;
+}
+
+export interface StudentClassRosterPayload {
+  rosterId: string;
+  classes: Array<{ classId: string; name: string; schoolYear?: string }>;
+  students: Array<{ studentId: string; firstName: string; lastName: string; classId?: string; status?: Student["status"] }>;
   [key: string]: unknown;
 }
 
@@ -218,6 +225,24 @@ function requireAttendancePayload(payload: unknown): AttendancePayload {
   return payload as AttendancePayload;
 }
 
+function requireStudentClassRosterPayload(payload: unknown): StudentClassRosterPayload {
+  if (!isRecord(payload) || !nonEmptyString(payload.rosterId) || !Array.isArray(payload.classes) || !Array.isArray(payload.students)) {
+    throw new Error("Le payload student-class-roster doit contenir rosterId, classes et students.");
+  }
+  if (!payload.classes.every((item) => isRecord(item) && nonEmptyString(item.classId) && typeof item.name === "string")) {
+    throw new Error("Chaque classe du référentiel EPS doit contenir classId et name.");
+  }
+  if (!payload.students.every((item) => isRecord(item) && nonEmptyString(item.studentId) && typeof item.firstName === "string" && typeof item.lastName === "string")) {
+    throw new Error("Chaque élève du référentiel EPS doit contenir studentId, firstName et lastName.");
+  }
+  return payload as StudentClassRosterPayload;
+}
+
+export function createStudentClassRosterEnvelope(options: ResourceEnvelopeOptions<StudentClassRosterPayload>): EpsInteropEnvelope<StudentClassRosterPayload> {
+  const payload = requireStudentClassRosterPayload(options.payload);
+  return createInteropEnvelope({ ...options, resource: "student-class-roster", eventId: options.eventId ?? payload.rosterId, entityId: options.entityId ?? payload.rosterId, payload });
+}
+
 export function createIndividualTournamentEnvelope(options: ResourceEnvelopeOptions<IndividualTournamentPayload>): EpsInteropEnvelope<IndividualTournamentPayload> {
   const payload = requireTournamentPayload(options.payload);
   return createInteropEnvelope({ ...options, resource: "individual-tournament", eventId: options.eventId ?? payload.eventId, entityId: options.entityId ?? payload.eventId, payload });
@@ -234,7 +259,7 @@ export function createAttendanceEnvelope(options: ResourceEnvelopeOptions<Attend
 }
 
 function readableResource(value: unknown): value is EpsInteropResource {
-  return value === "individual-tournament" || value === "individual-result" || value === "attendance" || value === "interval-session" || value === "cross-event" || value === "orientation-course" || value === "sns-roster" || value === "eps-context";
+  return value === "student-class-roster" || value === "individual-tournament" || value === "individual-result" || value === "attendance" || value === "interval-session" || value === "cross-event" || value === "orientation-course" || value === "sns-roster" || value === "eps-context";
 }
 
 function readableAction(value: unknown): value is EpsInteropAction {
@@ -272,6 +297,9 @@ export function parseInteropEnvelope(value: unknown): EpsInteropEnvelope | null 
   }
   if (value.resource === "attendance") {
     try { requireAttendancePayload(value.payload); } catch { return null; }
+  }
+  if (value.resource === "student-class-roster") {
+    try { requireStudentClassRosterPayload(value.payload); } catch { return null; }
   }
   const source: EpsInteropSource = { app: canonicalizeApplicationId(rawSourceApp), version: nonEmptyString(legacySource?.version) ? legacySource.version : "legacy" };
   const target: EpsInteropTarget = { app: canonicalizeApplicationId(nonEmptyString(rawTargetApp) ? rawTargetApp : DEFAULT_TARGET_APPLICATION_ID) };

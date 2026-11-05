@@ -123,14 +123,14 @@ function studentClassRosterPayload(store: TournamentStore): StudentClassRosterPa
   const classes = store.classes.map((schoolClass): RosterClass => ({
     classId: schoolClass.id,
     name: schoolClass.name,
-    active: true,
+    active: schoolClass.active !== false,
   }));
   const students = store.classes.flatMap((schoolClass): RosterStudent[] => schoolClass.students.map((student) => ({
     studentId: student.id,
     ...splitStudentName(student.name),
     classId: schoolClass.id,
     status: student.status,
-    active: true,
+    active: student.active !== false && schoolClass.active !== false,
   })));
   const currentClassIds = new Set(classes.map((item) => item.classId));
   const currentStudentIds = new Set(students.map((item) => item.studentId));

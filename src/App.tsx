@@ -11,6 +11,7 @@ import { getClassPerformance, getTargetScore, recalculateClassStats } from "./do
 import { isValidMatchResult, replaceTournamentMatch } from "./domain/matches";
 import { useEpsTheme } from "./theme";
 import { applyPwaUpdate, installPwa, PWA_VERSION_LABEL, usePwaStatus } from "./pwa";
+import { publishIndividualStore } from "./integration/relay";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -39,6 +40,7 @@ function App() {
   storeRef.current = store;
 
   useEffect(() => { saveStore(store); }, [store]);
+  useEffect(() => { void publishIndividualStore(store); }, [store]);
   useEffect(() => {
     integrationNotifyRef.current = installIntegrationBridge(() => storeRef.current, (snapshot) => setStore(snapshot));
     return () => {

@@ -16,6 +16,8 @@ const OUTBOX_KEY = "tournois-sport-individuel-relay-outbox-v1";
 const SENT_KEY = "tournois-sport-individuel-relay-sent-v1";
 const ATTENDANCE_KEY = "tournois-sport-individuel-relay-attendance-v1";
 const ROSTER_CURSOR_KEY = "tournois-sport-individuel-relay-roster-cursor-v1";
+const ROSTER_SNAPSHOT_KEY = "tournois-sport-individuel-relay-roster-snapshot-v1";
+const ROSTER_TOMBSTONES_KEY = "tournois-sport-individuel-relay-roster-tombstones-v1";
 
 type RelayEnvelope = EpsInteropEnvelope;
 type QueuedEnvelope = { envelope: RelayEnvelope; queuedAt: string };
@@ -114,21 +116,35 @@ function splitStudentName(name: string): { firstName: string; lastName: string }
 }
 
 function studentClassRosterPayload(store: TournamentStore): StudentClassRosterPayload {
-  const classes = store.classes.map((schoolClass) => ({
+  type RosterClass = StudentClassRosterPayload["classes"][number];
+  type RosterStudent = StudentClassRosterPayload["students"][number];
+  const previous = readJson<{ classes: RosterClass[]; students: RosterStudent[] }>(ROSTER_SNAPSHOT_KEY, { classes: [], students: [] });
+  const tombstones = readJson<{ classes: RosterClass[]; students: RosterStudent[] }>(ROSTER_TOMBSTONES_KEY, { classes: [], students: [] });
+  const classes = store.classes.map((schoolClass): RosterClass => ({
     classId: schoolClass.id,
     name: schoolClass.name,
-    students: schoolClass.students.length,
+    active: true,
   }));
-  const students = store.classes.flatMap((schoolClass) => schoolClass.students.map((student) => ({
+  const students = store.classes.flatMap((schoolClass): RosterStudent[] => schoolClass.students.map((student) => ({
     studentId: student.id,
     ...splitStudentName(student.name),
     classId: schoolClass.id,
     status: student.status,
+    active: true,
   })));
+  const currentClassIds = new Set(classes.map((item) => item.classId));
+  const currentStudentIds = new Set(students.map((item) => item.studentId));
+  const deletedAt = new Date().toISOString();
+  for (const item of previous.classes) if (!currentClassIds.has(item.classId) && !tombstones.classes.some((value) => value.classId === item.classId)) tombstones.classes.push({ ...item, active: false, deletedAt });
+  for (const item of previous.students) if (!currentStudentIds.has(item.studentId) && !tombstones.students.some((value) => value.studentId === item.studentId)) tombstones.students.push({ ...item, active: false, deletedAt });
+  tombstones.classes = tombstones.classes.filter((item) => !currentClassIds.has(item.classId));
+  tombstones.students = tombstones.students.filter((item) => !currentStudentIds.has(item.studentId));
+  writeJson(ROSTER_SNAPSHOT_KEY, { classes, students });
+  writeJson(ROSTER_TOMBSTONES_KEY, tombstones);
   return {
     rosterId: `tournois-sport-individuel:${store.version}`,
-    classes,
-    students,
+    classes: [...classes, ...tombstones.classes],
+    students: [...students, ...tombstones.students],
   };
 }
 

@@ -100,8 +100,8 @@ export interface AttendancePayload {
 
 export interface StudentClassRosterPayload {
   rosterId: string;
-  classes: Array<{ classId: string; name: string; schoolYear?: string }>;
-  students: Array<{ studentId: string; firstName: string; lastName: string; classId?: string; status?: Student["status"] }>;
+  classes: Array<{ classId: string; name: string; schoolYear?: string; active?: boolean; deletedAt?: string }>;
+  students: Array<{ studentId: string; firstName: string; lastName: string; classId?: string; status?: Student["status"]; active?: boolean; deletedAt?: string }>;
   [key: string]: unknown;
 }
 

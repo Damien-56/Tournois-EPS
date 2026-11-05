@@ -267,11 +267,16 @@ export function mergeStudentClassRoster(store: TournamentStore, payload: Student
   }
   for (const item of payload.classes) {
     const existing = classByExternalId.get(item.classId);
-    if (existing) {
-      existing.name = item.name;
+    if (item.active === false) {
+      if (existing) existing.active = false;
       continue;
     }
-    const created: SchoolClass = { id: `interop-${source}-${item.classId}`, externalId: item.classId, sourceApp: source, name: item.name, createdAt: new Date().toISOString(), students: [] };
+    if (existing) {
+      existing.name = item.name;
+      existing.active = true;
+      continue;
+    }
+    const created: SchoolClass = { id: `interop-${source}-${item.classId}`, externalId: item.classId, sourceApp: source, name: item.name, createdAt: new Date().toISOString(), students: [], active: true };
     classes.push(created);
     classByExternalId.set(item.classId, created);
   }
@@ -282,15 +287,20 @@ export function mergeStudentClassRoster(store: TournamentStore, payload: Student
     if (!targetClass) continue;
     const previousClass = classByStudent.get(item.studentId);
     const existing = [...classes].flatMap((schoolClass) => schoolClass.students).find((student) => student.sourceApp === source && student.externalId === item.studentId);
+    if (item.active === false) {
+      if (existing) existing.active = false;
+      continue;
+    }
     const name = `${item.firstName} ${item.lastName}`.trim();
     if (existing) {
       existing.name = name;
+      existing.active = true;
       if (item.status) existing.status = item.status;
       if (previousClass && previousClass.id !== targetClass.id) previousClass.students = previousClass.students.filter((student) => student.id !== existing.id);
       if (!targetClass.students.some((student) => student.id === existing.id)) targetClass.students.push(existing);
       continue;
     }
-    targetClass.students.push({ id: `interop-${source}-${item.studentId}`, externalId: item.studentId, sourceApp: source, name, level: 3, status: item.status ?? "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
+    targetClass.students.push({ id: `interop-${source}-${item.studentId}`, externalId: item.studentId, sourceApp: source, name, level: 3, status: item.status ?? "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0, active: true });
     classByStudent.set(item.studentId, targetClass);
   }
   return { ...store, classes };

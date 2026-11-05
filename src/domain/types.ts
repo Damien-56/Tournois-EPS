@@ -16,6 +16,7 @@ export interface Student {
   losses: number;
   refereed: number;
   notes?: string;
+  active?: boolean;
 }
 
 export interface SchoolClass {
@@ -26,6 +27,7 @@ export interface SchoolClass {
   students: Student[];
   createdAt: string;
   exitPin?: string;
+  active?: boolean;
 }
 
 export interface Match {

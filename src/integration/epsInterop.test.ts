@@ -5,6 +5,7 @@ import {
   createAttendanceEnvelope,
   createIndividualResultEnvelope,
   createIndividualTournamentEnvelope,
+  createStudentClassRosterEnvelope,
   parseInteropEnvelope,
   parseRosterEnvelope
 } from "./epsInterop";
@@ -78,10 +79,23 @@ describe("Enveloppe EPS canonique", () => {
     expect(attendance.payload).toMatchObject({ studentId: "student-1", classId: "class-1", sessionId: "session-1", status: "present", changedAt: "2026-10-28T10:00:00.000Z" });
   });
 
+  it("publie le référentiel commun élèves/classes avec des identifiants externes", () => {
+    const envelope = createStudentClassRosterEnvelope({
+      payload: {
+        rosterId: "tournois-sport-individuel:1",
+        classes: [{ classId: "class-1", name: "6e A" }],
+        students: [{ studentId: "student-1", firstName: "Camille", lastName: "Martin", classId: "class-1", status: "present" }]
+      }
+    });
+    expect(envelope).toMatchObject({ resource: "student-class-roster", eventId: "tournois-sport-individuel:1", entityId: "tournois-sport-individuel:1", action: "upsert" });
+    expect(parseInteropEnvelope(envelope)).toMatchObject({ resource: "student-class-roster", sourceApp: CANONICAL_APPLICATION_ID });
+  });
+
   it("refuse les payloads incomplets", () => {
     expect(() => createIndividualTournamentEnvelope({ payload: { eventId: "event-1", activityId: "activity-1", players: [] } as never })).toThrow();
     expect(() => createIndividualResultEnvelope({ payload: { resultId: "result-1", eventId: "event-1", studentId: "student-1", score: "21" } as never })).toThrow();
     expect(() => createAttendanceEnvelope({ payload: { studentId: "student-1", classId: "class-1", sessionId: "session-1", status: "present" } as never })).toThrow();
+    expect(() => createStudentClassRosterEnvelope({ payload: { rosterId: "roster-1", classes: [], students: [{ studentId: "student-1" }] } as never })).toThrow();
   });
 });
 

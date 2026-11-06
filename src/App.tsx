@@ -4,6 +4,7 @@ import type { Match, SchoolClass, Sport, Student, StudentStatus, Tournament, Tou
 import { exportStore, importStore, loadStore, saveStore } from "./storage";
 import { installIntegrationBridge } from "./integration";
 import { createClassFromRoster, fetchInteropDocument, parseRosterEnvelope } from "./integration/epsInterop";
+import { publishIndividualStore, startIndividualRelay } from "./integration/relay";
 import { discoverLanHosts, fetchLanState, flushQueuedLanActions, hasNativeLanHost, publishLanState, queueLanAction, readLanActions, sendLanAction, startLanHost, stopLanHost, type LanAction, type LanInfo, type LanPeer, type LanRole } from "./lan";
 import { LanQrCode } from "./LanQrCode";
 import { getPouleCourt, isAtpMatchAllowed, splitIntoGroups } from "./domain/rules";
@@ -37,6 +38,15 @@ function App() {
   storeRef.current = store;
 
   useEffect(() => { saveStore(store); }, [store]);
+  useEffect(() => { void publishIndividualStore(store); }, [store]);
+  useEffect(() => {
+    const stopRelay = startIndividualRelay((envelope) => {
+      if (envelope.resource !== "student-class-roster" || !envelope.payload || typeof envelope.payload !== "object") return;
+      setStore((current) => mergeRelayRoster(current, envelope.sourceApp, envelope.payload as Record<string, unknown>));
+      setMessage("Référentiel EPS reçu et intégré.");
+    });
+    return stopRelay;
+  }, []);
   useEffect(() => {
     integrationNotifyRef.current = installIntegrationBridge(() => storeRef.current, (snapshot) => setStore(snapshot));
     return () => {
@@ -148,6 +158,57 @@ function applyLanAction(store: TournamentStore, action: { type?: string; payload
   if (action.type === "delete-match") return deleteMatchAction(store, action.payload || {});
   if (action.type === "update-match") return updateMatchAction(store, action.payload || {});
   return applyMatchAction(store, action.payload || {});
+}
+
+function mergeRelayRoster(store: TournamentStore, sourceApp: string, payload: Record<string, unknown>): TournamentStore {
+  const rawClasses = Array.isArray(payload.classes) ? payload.classes : [];
+  const rawStudents = Array.isArray(payload.students) ? payload.students : [];
+  if (!rawClasses.length || !rawStudents.length) return store;
+  const studentsByClass = new Map<string, Array<Record<string, unknown>>>();
+  for (const value of rawStudents) {
+    if (!value || typeof value !== "object") continue;
+    const student = value as Record<string, unknown>;
+    const classId = typeof student.classId === "string" ? student.classId : "";
+    if (!classId || typeof student.studentId !== "string" || typeof student.lastName !== "string") continue;
+    studentsByClass.set(classId, [...(studentsByClass.get(classId) ?? []), student]);
+  }
+  let changed = false;
+  const classes = [...store.classes];
+  for (const value of rawClasses) {
+    if (!value || typeof value !== "object") continue;
+    const incoming = value as Record<string, unknown>;
+    if (typeof incoming.classId !== "string" || typeof incoming.name !== "string") continue;
+    const externalId = incoming.classId;
+    const existingIndex = classes.findIndex((item) => item.sourceApp === sourceApp && item.externalId === externalId);
+    const incomingStudents = (studentsByClass.get(externalId) ?? []).map((student) => ({
+      id: uid("student"),
+      externalId: String(student.studentId),
+      sourceApp,
+      name: `${String(student.firstName ?? "").trim()} ${String(student.lastName).trim()}`.trim(),
+      level: 3,
+      status: "present" as const,
+      points: 0,
+      matches: 0,
+      wins: 0,
+      losses: 0,
+      refereed: 0,
+    })).filter((student) => student.name);
+    if (existingIndex < 0) {
+      classes.push({ id: uid("class"), externalId, sourceApp, name: incoming.name, createdAt: new Date().toISOString(), students: incomingStudents });
+      changed = true;
+      continue;
+    }
+    const existing = classes[existingIndex];
+    const students = [...existing.students];
+    for (const student of incomingStudents) {
+      if (!students.some((item) => item.sourceApp === sourceApp && item.externalId === student.externalId)) {
+        students.push(student);
+        changed = true;
+      }
+    }
+    if (students.length !== existing.students.length) classes[existingIndex] = { ...existing, students };
+  }
+  return changed ? { ...store, classes } : store;
 }
 
 function applyMatchAction(store: TournamentStore, payload: Record<string, unknown>): TournamentStore {

@@ -11,7 +11,7 @@ import { getClassPerformance, getTargetScore, recalculateClassStats } from "./do
 import { isValidMatchResult, replaceTournamentMatch } from "./domain/matches";
 import { useEpsTheme } from "./theme";
 import { applyPwaUpdate, installPwa, PWA_VERSION_LABEL, usePwaStatus } from "./pwa";
-import { mergeStudentClassRoster, publishIndividualStore, startIndividualRosterRelay } from "./integration/relay";
+import { mergeIncomingAttendance, mergeStudentClassRoster, publishIndividualStore, startIndividualRosterRelay } from "./integration/relay";
 
 const sampleNames = ["Camille", "Noah", "Jules", "Inès", "Lina", "Hugo", "Zoé", "Louis"];
 const newStudent = (name: string): Student => ({ id: uid("student"), name, level: 3, status: "present", points: 0, matches: 0, wins: 0, losses: 0, refereed: 0 });
@@ -41,9 +41,14 @@ function App() {
 
   useEffect(() => { saveStore(store); }, [store]);
   useEffect(() => { void publishIndividualStore(store); }, [store]);
-  useEffect(() => startIndividualRosterRelay((payload, sourceApp) => {
-    setStore((current) => mergeStudentClassRoster(current, payload, sourceApp));
-  }), []);
+  useEffect(() => startIndividualRosterRelay(
+    (payload, sourceApp) => {
+      setStore((current) => mergeStudentClassRoster(current, payload, sourceApp));
+    },
+    (payload, sourceApp) => {
+      setStore((current) => mergeIncomingAttendance(current, payload, sourceApp));
+    },
+  ), []);
   useEffect(() => {
     integrationNotifyRef.current = installIntegrationBridge(() => storeRef.current, (snapshot) => setStore(snapshot));
     return () => {

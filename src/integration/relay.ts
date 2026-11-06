@@ -4,6 +4,7 @@ import {
   createIndividualResultEnvelope,
   createIndividualTournamentEnvelope,
   createStudentClassRosterEnvelope,
+  type AttendancePayload,
   type EpsInteropEnvelope,
   type StudentClassRosterPayload,
 } from "./epsInterop";
@@ -18,6 +19,7 @@ const ATTENDANCE_KEY = "tournois-sport-individuel-relay-attendance-v1";
 const ROSTER_CURSOR_KEY = "tournois-sport-individuel-relay-roster-cursor-v1";
 const ROSTER_SNAPSHOT_KEY = "tournois-sport-individuel-relay-roster-snapshot-v1";
 const ROSTER_TOMBSTONES_KEY = "tournois-sport-individuel-relay-roster-tombstones-v1";
+const ATTENDANCE_INBOX_KEY = "tournois-sport-individuel-relay-attendance-inbox-v1";
 
 type RelayEnvelope = EpsInteropEnvelope;
 type QueuedEnvelope = { envelope: RelayEnvelope; queuedAt: string };
@@ -306,7 +308,39 @@ export function mergeStudentClassRoster(store: TournamentStore, payload: Student
   return { ...store, classes };
 }
 
-export function startIndividualRosterRelay(onRoster: (payload: StudentClassRosterPayload, sourceApp: string) => void): () => void {
+export function mergeIncomingAttendance(store: TournamentStore, payload: AttendancePayload, sourceApp: string): TournamentStore {
+  const student = store.classes
+    .flatMap((schoolClass) => schoolClass.students)
+    .find((candidate) => candidate.sourceApp === sourceApp && candidate.externalId === payload.studentId);
+  const incomingStatus = String(payload.status);
+  const status = incomingStatus === "present"
+    ? "present"
+    : incomingStatus === "absent"
+      ? "absent"
+      : incomingStatus === "dispensed" || incomingStatus === "non-pratiquant" || incomingStatus === "inapte"
+        ? "non-pratiquant"
+        : null;
+  if (!student || !status) {
+    const inbox = readJson<Array<{ sourceApp: string; payload: AttendancePayload }>>(ATTENDANCE_INBOX_KEY, []);
+    if (!inbox.some((entry) => entry.sourceApp === sourceApp && entry.payload.sessionId === payload.sessionId && entry.payload.studentId === payload.studentId && entry.payload.revision === payload.revision)) {
+      inbox.push({ sourceApp, payload });
+      writeJson(ATTENDANCE_INBOX_KEY, inbox.slice(-250));
+    }
+    return store;
+  }
+  return {
+    ...store,
+    classes: store.classes.map((schoolClass) => ({
+      ...schoolClass,
+      students: schoolClass.students.map((candidate) => candidate.id === student.id ? { ...candidate, status } : candidate),
+    })),
+  };
+}
+
+export function startIndividualRosterRelay(
+  onRoster: (payload: StudentClassRosterPayload, sourceApp: string) => void,
+  onAttendance?: (payload: AttendancePayload, sourceApp: string) => void,
+): () => void {
   let cancelled = false;
   const pull = async () => {
     try {
@@ -316,6 +350,7 @@ export function startIndividualRosterRelay(onRoster: (payload: StudentClassRoste
       for (const record of result.records ?? []) {
         const envelope = record.envelope;
         if (envelope?.resource === "student-class-roster" && envelope.sourceApp !== APP_ID) onRoster(envelope.payload as StudentClassRosterPayload, envelope.sourceApp);
+        if (envelope?.resource === "attendance" && envelope.sourceApp !== APP_ID) onAttendance?.(envelope.payload as AttendancePayload, envelope.sourceApp);
         storage()?.setItem(ROSTER_CURSOR_KEY, String(record.sequence));
       }
       if (typeof result.nextCursor === "number" && result.nextCursor > cursor) storage()?.setItem(ROSTER_CURSOR_KEY, String(result.nextCursor));
